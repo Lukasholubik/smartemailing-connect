@@ -39,8 +39,7 @@ if ( file_exists( $smec_updater_file ) ) {
 		$smec_update_checker->setAuthentication( SMEC_GITHUB_TOKEN );
 	}
 
-	// Používat GitHub Releases (ne větev) – umožňuje rollback na starší verzi
-	$smec_update_checker->getVcsApi()->enableReleaseAssets();
+	// Používat GitHub Releases – umožňuje rollback na starší verzi
 }
 
 if ( version_compare( PHP_VERSION, '8.0', '<' ) ) {
