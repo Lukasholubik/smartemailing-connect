@@ -33,12 +33,6 @@ if ( file_exists( $smec_updater_file ) ) {
 		'smartemailing-connect'
 	);
 
-	// Token pro přístup k private repozitáři – přidat do wp-config.php:
-	// define( 'SMEC_GITHUB_TOKEN', 'ghp_xxx...' );
-	if ( defined( 'SMEC_GITHUB_TOKEN' ) && SMEC_GITHUB_TOKEN ) {
-		$smec_update_checker->setAuthentication( SMEC_GITHUB_TOKEN );
-	}
-
 	// Používat GitHub Releases – umožňuje rollback na starší verzi
 }
 
