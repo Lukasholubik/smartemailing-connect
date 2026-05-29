@@ -28,16 +28,19 @@ if ( file_exists( $smec_updater_file ) ) {
 	require_once $smec_updater_file;
 
 	$smec_update_checker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
-		'https://github.com/lukas-holubik/smartemailing-connect/', // ← zmeňte na svůj GitHub repo URL
+		'https://github.com/Lukasholubik/smartemailing-connect/',
 		SMEC_PLUGIN_FILE,
 		'smartemailing-connect'
 	);
 
-	// Pokud je repo private, nastavte Personal Access Token:
-	// $smec_update_checker->setAuthentication( defined( 'SMEC_GITHUB_TOKEN' ) ? SMEC_GITHUB_TOKEN : '' );
+	// Token pro přístup k private repozitáři – přidat do wp-config.php:
+	// define( 'SMEC_GITHUB_TOKEN', 'ghp_xxx...' );
+	if ( defined( 'SMEC_GITHUB_TOKEN' ) && SMEC_GITHUB_TOKEN ) {
+		$smec_update_checker->setAuthentication( SMEC_GITHUB_TOKEN );
+	}
 
-	// Sledovat větev 'main' (nebo používat GitHub Releases – doporučeno)
-	$smec_update_checker->setBranch( 'main' );
+	// Používat GitHub Releases (ne větev) – umožňuje rollback na starší verzi
+	$smec_update_checker->getVcsApi()->enableReleaseAssets();
 }
 
 if ( version_compare( PHP_VERSION, '8.0', '<' ) ) {
