@@ -1,0 +1,36 @@
+/* SmartEmailing Connect – Reading Time Frontend */
+
+.smec-reading-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: inherit;
+  line-height: 1.5;
+  margin: 0.25em 0;
+}
+
+.smec-reading-time.display-block {
+  display: flex;
+  width: 100%;
+}
+
+.smec-rt-icon {
+  display: inline-block;
+  vertical-align: middle;
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+.smec-rt-label { font-weight: inherit; }
+.smec-rt-value { font-weight: 600; }
+.smec-rt-suffix { }
+
+/* Auto-insert wrapper */
+.smec-reading-time-auto {
+  margin-bottom: 1rem;
+}
+.smec-reading-time-auto.after {
+  margin-top: 1rem;
+  margin-bottom: 0;
+}
