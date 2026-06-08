@@ -3,6 +3,15 @@
 Všechny výrazné změny jsou dokumentovány v tomto souboru.
 Formát dle [Keep a Changelog](https://keepachangelog.com/cs/1.0.0/).
 
+## [1.2.0] – 2026-06-08
+
+### Přidáno
+- Modul Google Tag Manager – vložení GTM kódu přímo do webu zadáním Container ID (nebo celého GTM snippetu)
+- GTM script vložen do `<head>` (priorita 1), noscript iframe ihned za `<body>` (wp_body_open) s fallbackem do patičky
+- Možnost vyloučit administrátory a konkrétní role z načítání GTM
+- Tlačítko „Otestovat GTM" – server-side ověření přítomnosti GTM kódu na homepage
+- GTM modul přidán do sekce Moduly v Nastavení (lze zapnout/vypnout)
+
 ## [1.1.0] – 2026-06-08
 
 ### Přidáno
