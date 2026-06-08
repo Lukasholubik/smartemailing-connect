@@ -17,6 +17,24 @@
 - **Commit zprávy:** Stručně popisují co a proč (česky nebo anglicky dle kontextu), ne jak.
 - **Po každé změně:** Záznam do tohoto `dev-log.md` (datum, soubory, co, proč).
 
+### Verzování a GitHub Release
+
+Při každém bumpu verze provést **celý tento postup** (Plugin Update Checker vyžaduje GitHub Release, ne jen tag):
+
+1. Bump `Version:` v hlavičce `smartemailing-connect.php` + `define('SMEC_VERSION', ...)`
+2. Aktualizovat `CHANGELOG.md`
+3. `git add` + `git commit` (`chore: bump version to X.Y.Z`)
+4. `git tag vX.Y.Z`
+5. `git push origin main --tags`
+6. Vytvořit **GitHub Release** na `https://github.com/Lukasholubik/smartemailing-connect/releases/new?tag=vX.Y.Z`
+   - Title: `SmartEmailing Connect X.Y.Z`
+   - Body: changelog změn dané verze
+   - Publikovat (ne Draft!)
+7. Ověřit: `GET https://api.github.com/repos/Lukasholubik/smartemailing-connect/releases/latest`
+
+**Po release – vynutit kontrolu na live webu:**
+`https://domena.cz/wp-admin/update-core.php?force-check=1`
+
 ### Větve (branching strategie)
 - **`main`** = stabilní CORE kód – vždy funkční, vždy prošel bezpečnostním auditem.
 - **Feature větve** = při každé nové funkci nebo úpravě, která by mohla narušit chod:
