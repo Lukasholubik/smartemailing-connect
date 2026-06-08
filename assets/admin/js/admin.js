@@ -116,6 +116,43 @@
     //  WEBTRACKING PAGE
     // ─────────────────────────────────────────────────────────────
     initWebtackingPage: function () {
+      // Test webtracking
+      $('#smec-test-webtracking').on('click', function () {
+        var $btn = $(this);
+        $btn.prop('disabled', true).text('Testuji…');
+        $('#smec-wt-test-result').hide();
+
+        SMEC.ajax('test_webtracking', {},
+          function (data) {
+            $btn.prop('disabled', false).text('Otestovat webtracking');
+
+            var statusIcon = { ok: '✅', warning: '⚠️', error: '❌', disabled: '⏸' };
+            var icon = statusIcon[data.status] || '❓';
+
+            $('#smec-wt-test-title').text(icon + ' ' + data.message);
+
+            var $checks = $('#smec-wt-test-checks').empty();
+            (data.checks || []).forEach(function (c) {
+              $checks.append('<li>' + (c.ok ? '✅' : '❌') + ' ' + $('<span>').text(c.label).html() + '</li>');
+            });
+
+            var $hints = $('#smec-wt-test-hints').empty().hide();
+            if (data.hints && data.hints.length) {
+              data.hints.forEach(function (h) {
+                $hints.append('<li>' + $('<span>').text(h).html() + '</li>');
+              });
+              $hints.show();
+            }
+
+            $('#smec-wt-test-result').show();
+          },
+          function (d) {
+            $btn.prop('disabled', false).text('Otestovat webtracking');
+            SMEC.showResult('#smec-wt-result', d.message || smecAdmin.strings.error, 'error');
+          }
+        );
+      });
+
       $('#smec-save-webtracking').on('click', function () {
         var roles = [];
         $('[name="exclude_roles[]"]:checked').each(function () { roles.push($(this).val()); });
@@ -183,9 +220,31 @@
         );
       });
 
+      $('#smec-create-field').on('click', function () {
+        var name = $('#smec-cf-name').val().trim();
+        var type = $('#smec-cf-type').val();
+        if (!name) { SMEC.showResult('#smec-create-field-result', 'Zadejte název pole.', 'error'); return; }
+        var btn = $(this).prop('disabled', true).text('Vytvářím…');
+        SMEC.ajax('create_customfield', { name: name, type: type },
+          function (d) {
+            btn.prop('disabled', false).text('Vytvořit');
+            SMEC.showResult('#smec-create-field-result', 'Pole vytvořeno (ID: ' + (d.data && d.data.id ? d.data.id : '?') + ').', 'success');
+            $('#smec-cf-name').val('');
+          },
+          function (d) {
+            btn.prop('disabled', false).text('Vytvořit');
+            SMEC.showResult('#smec-create-field-result', d.message, 'error');
+          }
+        );
+      });
+
       $('#smec-refresh-cache').on('click', function () {
         SMEC.ajax('refresh_cache', {}, function (d) { alert(d.message); });
       });
+
+      // Automatické načtení při otevření stránky
+      $('#smec-fetch-lists').trigger('click');
+      $('#smec-fetch-fields').trigger('click');
     },
 
     renderListsTable: function (lists) {
@@ -195,6 +254,7 @@
         html += '<tr><td><code>' + SMEC.esc(String(l.id || '—')) + '</code></td><td>' + SMEC.esc(l.name || l.publicname || '—') + '</td></tr>';
       });
       html += '</tbody></table>';
+      $('#smec-lists-static').hide();
       $('#smec-lists-container').html(html);
     },
 
@@ -205,6 +265,7 @@
         html += '<tr><td><code>' + SMEC.esc(String(f.id || '—')) + '</code></td><td>' + SMEC.esc(f.name || '—') + '</td><td>' + SMEC.esc(f.type || '—') + '</td></tr>';
       });
       html += '</tbody></table>';
+      $('#smec-fields-static').hide();
       $('#smec-fields-container').html(html);
     },
 
@@ -214,6 +275,18 @@
     currentMapping: null,
 
     initFormsPage: function () {
+      // Průvodce – toggle rozbalení/sbalení
+      (function () {
+        var $body  = $('#smec-guide-body');
+        var $arrow = $('.smec-guide-arrow');
+        var open   = true;
+        $('#smec-guide-toggle').on('click', function () {
+          open = !open;
+          $body.toggle(open);
+          $arrow.text(open ? '▼' : '▶');
+        });
+      }());
+
       SMEC.initTabs('#smec-mapping-editor');
       SMEC.initSourceSelects('#smec-mapping-editor');
 
@@ -530,18 +603,48 @@
     // ─────────────────────────────────────────────────────────────
     //  SETTINGS PAGE
     // ─────────────────────────────────────────────────────────────
+    collectModules: function () {
+      var modules = {};
+      $('.smec-module-toggle').each(function () {
+        modules[$(this).data('module')] = $(this).is(':checked') ? 1 : 0;
+      });
+      return modules;
+    },
+
     initSettingsPage: function () {
+      // Auto-uložení modulů při přepnutí + reload menu
+      $('.smec-module-toggle').on('change', function () {
+        var $toggle = $(this);
+        var $row    = $toggle.closest('tr');
+        $row.find('.smec-module-saving').remove();
+        $row.find('td').append('<span class="smec-module-saving smec-muted" style="margin-left:8px;font-size:0.8rem;">Ukládám…</span>');
+
+        var data = {
+          data: JSON.stringify({
+            debug:               $('#gs-debug').is(':checked') ? 1 : 0,
+            log_retention_days:  $('#gs-log-retention').val() || 30,
+            delete_on_uninstall: $('#gs-delete-on-uninstall').is(':checked') ? 1 : 0,
+            modules:             SMEC.collectModules(),
+          })
+        };
+        SMEC.ajax('save_general_settings', data,
+          function () {
+            $row.find('.smec-module-saving').text('✓ Uloženo').css('color','#007017');
+            setTimeout(function () { window.location.reload(); }, 600);
+          },
+          function (d) {
+            $row.find('.smec-module-saving').text('Chyba: ' + (d.message || '')).css('color','#d63638');
+          }
+        );
+      });
+
       $('#smec-save-general').on('click', function () {
-        var modules = {};
-        $('.smec-module-toggle').each(function () {
-          modules[$(this).data('module')] = $(this).is(':checked') ? 1 : 0;
-        });
         var data = {
           data: JSON.stringify({
             debug:               $('#gs-debug').is(':checked') ? 1 : 0,
             log_retention_days:  $('#gs-log-retention').val(),
             delete_on_uninstall: $('#gs-delete-on-uninstall').is(':checked') ? 1 : 0,
-            modules:             modules,
+            modules:             SMEC.collectModules(),
           })
         };
         SMEC.ajax('save_general_settings', data,
@@ -580,6 +683,229 @@
     // ─────────────────────────────────────────────────────────────
     //  READING TIME PRESETY
     // ─────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────
+    //  MONITOR FORMULÁŘŮ – statistiky odesláno
+    // ─────────────────────────────────────────────────────────────
+    chartMonthly: null,
+
+    initFormMonitorStats: function () {
+      SMEC.loadFormMonitorStats('30d');
+
+      $(document).on('click', '.smec-monitor-period-btn', function () {
+        var period = $(this).data('period');
+        $('.smec-monitor-period-btn').removeClass('smec-period-active');
+        $(this).addClass('smec-period-active');
+        var label = period === '12m' ? '(12m)' : '(30d)';
+        $('.smec-period-label').text(label);
+        SMEC.loadFormMonitorStats(period);
+      });
+
+      // Drill-down kliknutím na číslo
+      $(document).on('click', '.smec-sent-count[data-count]', function () {
+        var $el      = $(this);
+        var formType = $el.data('form-type');
+        var formId   = $el.data('form-id');
+        var name     = $el.closest('tr').find('td:first strong').text() || formId;
+        $('#smec-monthly-modal-title').text('Měsíční přehled – ' + name);
+        $('#smec-monthly-modal').show();
+        SMEC.loadFormMonthly(formType, formId);
+      });
+
+      $('#smec-monthly-modal-close, #smec-monthly-modal').on('click', function (e) {
+        if (e.target === this) $('#smec-monthly-modal').hide();
+      });
+    },
+
+    loadFormMonitorStats: function (period) {
+      $('.smec-sent-count').text('…').addClass('smec-sent-loading').removeAttr('data-count');
+      SMEC.ajax('get_form_monitor_stats', { period: period },
+        function (data) {
+          var stats = data.stats || {};
+          $('.smec-sent-count').each(function () {
+            var $el      = $(this);
+            var formType = $el.data('form-type');
+            var formId   = $el.data('form-id');
+            var key      = formType + '|' + formId;
+            var count    = stats[key] || 0;
+            $el.removeClass('smec-sent-loading')
+               .text(count)
+               .attr('data-count', count)
+               .toggleClass('smec-sent-has-data', count > 0)
+               .attr('title', count > 0 ? 'Klikněte pro měsíční rozpad' : 'Žádné importy v tomto období');
+          });
+        }
+      );
+    },
+
+    loadFormMonthly: function (formType, formId) {
+      var ctx = document.getElementById('smec-chart-monthly');
+      if (!ctx) return;
+      if (SMEC.chartMonthly) { SMEC.chartMonthly.destroy(); SMEC.chartMonthly = null; }
+      $(ctx).closest('.smec-modal-body').find('.smec-modal-loading').remove();
+      $(ctx).before('<p class="smec-modal-loading smec-muted" style="text-align:center;">Načítám…</p>');
+      $(ctx).hide();
+
+      SMEC.ajax('get_form_monthly', { form_type: formType, form_id: formId },
+        function (data) {
+          $('.smec-modal-loading').remove();
+          $(ctx).show();
+          var monthly = data.monthly || [];
+          SMEC.chartMonthly = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: monthly.map(function (m) { return m.month; }),
+              datasets: [{
+                label: 'Importované kontakty',
+                data:  monthly.map(function (m) { return m.count; }),
+                backgroundColor: '#2271b1',
+                borderRadius: 4,
+              }],
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } },
+              },
+            },
+          });
+        }
+      );
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    //  GRAFY AKTIVITY (overview page)
+    // ─────────────────────────────────────────────────────────────
+    chartActivity: null,
+    chartByForm:   null,
+    chartPeriod:   '30d',
+
+    initCharts: function () {
+      SMEC.loadChartData('30d');
+
+      $('.smec-period-btn').on('click', function () {
+        var period = $(this).data('period');
+        if (period === SMEC.chartPeriod) return;
+        SMEC.chartPeriod = period;
+        $('.smec-period-btn').removeClass('smec-period-active');
+        $(this).addClass('smec-period-active');
+        SMEC.loadChartData(period);
+      });
+    },
+
+    loadChartData: function (period) {
+      $('#smec-charts-loading').show();
+      $('#smec-charts-body').hide();
+
+      SMEC.ajax('get_chart_data', { period: period },
+        function (data) {
+          $('#smec-charts-loading').hide();
+          $('#smec-charts-body').show();
+          SMEC.renderActivityChart(data);
+          SMEC.renderByFormChart(data);
+        },
+        function () {
+          $('#smec-charts-loading').text('Nepodařilo se načíst data.');
+        }
+      );
+    },
+
+    renderActivityChart: function (data) {
+      var ctx = document.getElementById('smec-chart-activity');
+      if (!ctx) return;
+
+      if (SMEC.chartActivity) { SMEC.chartActivity.destroy(); }
+
+      SMEC.chartActivity = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.labels,
+          datasets: [
+            {
+              label: 'API volání',
+              data: data.api_calls,
+              borderColor: '#2271b1',
+              backgroundColor: 'rgba(34,113,177,0.08)',
+              tension: 0.3,
+              fill: true,
+              pointRadius: 3,
+            },
+            {
+              label: 'Importy kontaktů',
+              data: data.imports,
+              borderColor: '#00a32a',
+              backgroundColor: 'rgba(0,163,42,0.08)',
+              tension: 0.3,
+              fill: true,
+              pointRadius: 3,
+            },
+            {
+              label: 'Chyby',
+              data: data.errors,
+              borderColor: '#d63638',
+              backgroundColor: 'rgba(214,54,56,0.08)',
+              tension: 0.3,
+              fill: true,
+              pointRadius: 3,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: { callbacks: {
+              title: function (items) { return items[0].label; }
+            }},
+          },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } },
+            x: { ticks: { maxTicksLimit: 10 } },
+          },
+        },
+      });
+    },
+
+    renderByFormChart: function (data) {
+      var ctx = document.getElementById('smec-chart-byform');
+      if (!ctx) return;
+
+      if (SMEC.chartByForm) { SMEC.chartByForm.destroy(); }
+
+      var forms = data.by_form || [];
+      if (!forms.length) {
+        $(ctx).hide();
+        $('#smec-chart-byform-empty').show();
+        return;
+      }
+      $(ctx).show();
+      $('#smec-chart-byform-empty').hide();
+
+      var colors = ['#2271b1','#00a32a','#dba617','#d63638','#72777c','#8c6d26','#135e96','#1a6e1a'];
+
+      SMEC.chartByForm = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: forms.map(function (f) { return f.name; }),
+          datasets: [{
+            label: 'Importované kontakty',
+            data:  forms.map(function (f) { return f.count; }),
+            backgroundColor: forms.map(function (_, i) { return colors[i % colors.length]; }),
+            borderRadius: 4,
+          }],
+        },
+        options: {
+          responsive: true,
+          indexAxis: 'y',
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } },
+          },
+        },
+      });
+    },
+
     // ─────────────────────────────────────────────────────────────
     //  DIAGNOSTIKA (overview page)
     // ─────────────────────────────────────────────────────────────
@@ -1260,8 +1586,10 @@
       if ($('#smec-save-general').length)      SMEC.initSettingsPage();
       // Reading time page (presety)
       if ($('#rt-presets-list').length || $('#rt-preset-editor').length) SMEC.initReadingTimePage();
-      // Overview / diagnostics
+      // Overview / diagnostics + charts
       if ($('#smec-diag-issues').length || $('.smec-diag-banner').length) SMEC.initDiagnostics();
+      if ($('#smec-charts-card').length) SMEC.initCharts();
+      if ($('#smec-form-monitor').length) SMEC.initFormMonitorStats();
       // Notifications page
       if ($('#smec-save-notifications').length) SMEC.initNotificationsPage();
       // WooCommerce page

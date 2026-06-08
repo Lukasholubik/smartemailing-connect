@@ -115,16 +115,31 @@ class SMEC_Admin {
 		add_action( 'admin_head', static function () {
 			grou_output_admin_group_css();
 		} );
-		add_submenu_page( self::MENU_SLUG, 'Přehled',          'Přehled',          self::CAPABILITY, self::MENU_SLUG,             [ $this, 'page_overview' ] );
-		add_submenu_page( self::MENU_SLUG, 'API připojení',    'API připojení',    self::CAPABILITY, 'smec-api',                  [ $this, 'page_api' ] );
-		add_submenu_page( self::MENU_SLUG, 'Webtracking',      'Webtracking',      self::CAPABILITY, 'smec-webtracking',          [ $this, 'page_webtracking' ] );
-		add_submenu_page( self::MENU_SLUG, 'Seznamy & Pole',   'Seznamy & Pole',   self::CAPABILITY, 'smec-lists',                [ $this, 'page_lists' ] );
-		add_submenu_page( self::MENU_SLUG, 'Formuláře',        'Formuláře',        self::CAPABILITY, 'smec-forms',                [ $this, 'page_forms' ] );
-		add_submenu_page( self::MENU_SLUG, 'WooCommerce',      'WooCommerce',      self::CAPABILITY, 'smec-woocommerce',          [ $this, 'page_woocommerce' ] );
-		add_submenu_page( self::MENU_SLUG, 'Doba čtení',       'Doba čtení',       self::CAPABILITY, 'smec-reading-time',         [ $this, 'page_reading_time' ] );
-		add_submenu_page( self::MENU_SLUG, 'Logy',             'Logy',             self::CAPABILITY, 'smec-logs',                 [ $this, 'page_logs' ] );
-		add_submenu_page( self::MENU_SLUG, 'Notifikace',        'Notifikace',        self::CAPABILITY, 'smec-notifications',       [ $this, 'page_notifications' ] );
-		add_submenu_page( self::MENU_SLUG, 'Nastavení',        'Nastavení',        self::CAPABILITY, 'smec-settings',             [ $this, 'page_settings' ] );
+		$modules = $this->settings->get_general()['modules'] ?? [];
+
+		// Vždy zobrazit
+		add_submenu_page( self::MENU_SLUG, 'Přehled',        'Přehled',        self::CAPABILITY, self::MENU_SLUG,   [ $this, 'page_overview' ] );
+		add_submenu_page( self::MENU_SLUG, 'API připojení',  'API připojení',  self::CAPABILITY, 'smec-api',        [ $this, 'page_api' ] );
+
+		// Záložky závislé na modulech
+		if ( ! empty( $modules['webtracking'] ) ) {
+			add_submenu_page( self::MENU_SLUG, 'Webtracking',    'Webtracking',    self::CAPABILITY, 'smec-webtracking',  [ $this, 'page_webtracking' ] );
+		}
+		add_submenu_page( self::MENU_SLUG, 'Seznamy & Pole', 'Seznamy & Pole', self::CAPABILITY, 'smec-lists',      [ $this, 'page_lists' ] );
+		if ( ! empty( $modules['forms'] ) ) {
+			add_submenu_page( self::MENU_SLUG, 'Formuláře',      'Formuláře',      self::CAPABILITY, 'smec-forms',        [ $this, 'page_forms' ] );
+		}
+		if ( ! empty( $modules['woocommerce'] ) ) {
+			add_submenu_page( self::MENU_SLUG, 'WooCommerce',    'WooCommerce',    self::CAPABILITY, 'smec-woocommerce',  [ $this, 'page_woocommerce' ] );
+		}
+		if ( ! empty( $modules['reading_time'] ) ) {
+			add_submenu_page( self::MENU_SLUG, 'Doba čtení',     'Doba čtení',     self::CAPABILITY, 'smec-reading-time', [ $this, 'page_reading_time' ] );
+		}
+
+		// Vždy zobrazit
+		add_submenu_page( self::MENU_SLUG, 'Logy',           'Logy',           self::CAPABILITY, 'smec-logs',         [ $this, 'page_logs' ] );
+		add_submenu_page( self::MENU_SLUG, 'Notifikace',     'Notifikace',     self::CAPABILITY, 'smec-notifications',[ $this, 'page_notifications' ] );
+		add_submenu_page( self::MENU_SLUG, 'Nastavení',      'Nastavení',      self::CAPABILITY, 'smec-settings',     [ $this, 'page_settings' ] );
 	}
 
 	// -------------------------------------------------------------------------
@@ -197,6 +212,17 @@ class SMEC_Admin {
 
 		if ( ! in_array( $hook, $smec_pages, true ) ) return;
 
+		// Chart.js jen na přehledové stránce
+		if ( $hook === 'toplevel_page_smartemailing-connect' ) {
+			wp_enqueue_script(
+				'chartjs',
+				'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
+				[],
+				'4.4.0',
+				true
+			);
+		}
+
 		wp_enqueue_style(
 			'smec-admin',
 			SMEC_PLUGIN_URL . 'assets/admin/css/admin.css',
@@ -265,6 +291,11 @@ class SMEC_Admin {
 			'smec_save_notifications',
 			'smec_test_notification',
 			'smec_reset_notifier_state',
+			'smec_test_webtracking',
+			'smec_create_customfield',
+			'smec_get_chart_data',
+			'smec_get_form_monitor_stats',
+			'smec_get_form_monthly',
 		];
 
 		foreach ( $actions as $action ) {
@@ -274,6 +305,9 @@ class SMEC_Admin {
 
 	// Akce s rate limitem (max N volání za okno)
 	private const RATE_LIMITED_ACTIONS = [
+		'smec_get_chart_data'          => [ 'limit' => 30, 'window' => 60 ],
+		'smec_get_form_monitor_stats'  => [ 'limit' => 30, 'window' => 60 ],
+		'smec_get_form_monthly'        => [ 'limit' => 30, 'window' => 60 ],
 		'smec_deactivate_plugin' => [ 'limit' => 3,  'window' => 300  ],  // 3× za 5 minut
 		'smec_import_settings'   => [ 'limit' => 5,  'window' => 60   ],  // 5× za minutu
 		'smec_clear_logs'        => [ 'limit' => 10, 'window' => 60   ],
@@ -344,6 +378,90 @@ class SMEC_Admin {
 		wp_send_json_success( [ 'message' => 'Webtracking nastavení uloženo.' ] );
 	}
 
+	private function ajax_test_webtracking(): void {
+		$cfg  = $this->settings->get_webtracking();
+		$checks = [];
+
+		// 1. Je webtracking povolen?
+		if ( empty( $cfg['enabled'] ) ) {
+			wp_send_json_success( [
+				'status'  => 'disabled',
+				'message' => 'Webtracking není povolen. Zapněte jej v nastavení výše.',
+				'checks'  => [],
+			] );
+			return;
+		}
+		$checks[] = [ 'label' => 'Webtracking je povolen', 'ok' => true ];
+
+		// 2. Je GUID nastaven?
+		$guid = sanitize_text_field( $cfg['guid'] ?? '' );
+		if ( ! $guid ) {
+			wp_send_json_success( [
+				'status'  => 'error',
+				'message' => 'GUID není nastaven. Vyplňte jej v poli výše.',
+				'checks'  => $checks,
+			] );
+			return;
+		}
+		$checks[] = [ 'label' => 'GUID je nastaven (' . esc_html( substr( $guid, 0, 8 ) ) . '…)', 'ok' => true ];
+
+		// 3. Stáhnout homepage a hledat tracking skript
+		$response = wp_remote_get( home_url( '/' ), [
+			'timeout'    => 10,
+			'user-agent' => 'SmartEmailing Connect Test Bot',
+			'sslverify'  => false,
+		] );
+
+		if ( is_wp_error( $response ) ) {
+			wp_send_json_success( [
+				'status'  => 'error',
+				'message' => 'Nepodařilo se načíst homepage: ' . esc_html( $response->get_error_message() ),
+				'checks'  => $checks,
+			] );
+			return;
+		}
+
+		$body = wp_remote_retrieve_body( $response );
+
+		$script_found = str_contains( $body, 'smartemailing.cz/webtracking/script.js' );
+		$guid_found   = $guid && str_contains( $body, $guid );
+
+		$checks[] = [
+			'label' => 'Tracking skript nalezen ve zdrojovém kódu homepage',
+			'ok'    => $script_found,
+		];
+		$checks[] = [
+			'label' => 'GUID odpovídá hodnotě ve skriptu',
+			'ok'    => $guid_found,
+		];
+
+		if ( $script_found && $guid_found ) {
+			wp_send_json_success( [
+				'status'  => 'ok',
+				'message' => 'Webtracking funguje správně – skript je aktivní na homepage.',
+				'checks'  => $checks,
+			] );
+			return;
+		}
+
+		// Skript nenalezen – sestavit nápovědu
+		$hints = [];
+		if ( ! empty( $cfg['exclude_admins'] ) ) {
+			$hints[] = 'Máte zapnuté "Vyloučit administrátory" – test načítá stránku jako nepřihlášený, ale lokální WP cache může vidět jiný výstup.';
+		}
+		$hints[] = 'Zkontrolujte, zda caching plugin nepodává stránku bez tracking skriptu.';
+		if ( ! $script_found ) {
+			$hints[] = 'Skript nebyl nalezen. Ověřte, zda je webtracking skutečně aktivní a GUID správně zadán.';
+		}
+
+		wp_send_json_success( [
+			'status'  => 'warning',
+			'message' => 'Webtracking je nastaven, ale skript nebyl nalezen ve zdrojovém kódu homepage.',
+			'checks'  => $checks,
+			'hints'   => $hints,
+		] );
+	}
+
 	// -------------------------------------------------------------------------
 	// AJAX: Lists & Custom Fields
 	// -------------------------------------------------------------------------
@@ -383,6 +501,29 @@ class SMEC_Admin {
 		}
 	}
 
+	private function ajax_create_customfield(): void {
+		$allowed_types = [ 'text', 'date', 'number', 'checkbox', 'radio' ];
+
+		$name = sanitize_text_field( $_POST['name'] ?? '' );
+		$type = sanitize_key( $_POST['type'] ?? 'text' );
+
+		if ( ! $name ) {
+			wp_send_json_error( [ 'message' => 'Zadejte název pole.' ] );
+		}
+		if ( ! in_array( $type, $allowed_types, true ) ) {
+			$type = 'text';
+		}
+
+		$result = $this->api->create_custom_field( [ 'name' => $name, 'type' => $type ] );
+
+		if ( $result['success'] ) {
+			$this->settings->clear_customfields_cache();
+			wp_send_json_success( $result );
+		} else {
+			wp_send_json_error( $result );
+		}
+	}
+
 	private function ajax_refresh_cache(): void {
 		$this->settings->clear_lists_cache();
 		$this->settings->clear_customfields_cache();
@@ -397,6 +538,45 @@ class SMEC_Admin {
 		$issues = $this->diagnostics->run();
 		$counts = $this->diagnostics->count_by_level( $issues );
 		wp_send_json_success( [ 'issues' => $issues, 'counts' => $counts ] );
+	}
+
+	private function ajax_get_form_monitor_stats(): void {
+		$period = sanitize_key( $_POST['period'] ?? '30d' );
+		$days   = $period === '12m' ? 365 : 30;
+		$stats  = $this->logger->get_form_monitor_stats( $days );
+		wp_send_json_success( [ 'stats' => $stats, 'period' => $period ] );
+	}
+
+	private function ajax_get_form_monthly(): void {
+		$form_type = sanitize_key( $_POST['form_type'] ?? '' );
+		$form_id   = sanitize_text_field( $_POST['form_id'] ?? '' );
+		if ( ! $form_type || ! $form_id ) {
+			wp_send_json_error( [ 'message' => 'Chybí parametry.' ] );
+		}
+		$monthly = $this->logger->get_form_monthly_stats( $form_type, $form_id );
+		wp_send_json_success( [ 'monthly' => $monthly, 'form_type' => $form_type, 'form_id' => $form_id ] );
+	}
+
+	private function ajax_get_chart_data(): void {
+		$period = sanitize_key( $_POST['period'] ?? '30d' );
+
+		if ( $period === '12m' ) {
+			$rows    = $this->logger->get_activity_by_month( 12 );
+			$labels  = array_column( $rows, 'month' );
+		} else {
+			$rows    = $this->logger->get_activity_by_day( 30 );
+			$labels  = array_map( static fn( $r ) => substr( $r['day'], 5 ), $rows ); // MM-DD
+		}
+
+		$days_for_forms = $period === '12m' ? 365 : 30;
+
+		wp_send_json_success( [
+			'labels'    => $labels,
+			'api_calls' => array_column( $rows, 'api_calls' ),
+			'imports'   => array_column( $rows, 'imports' ),
+			'errors'    => array_column( $rows, 'errors' ),
+			'by_form'   => $this->logger->get_imports_by_form( $days_for_forms ),
+		] );
 	}
 
 	private function ajax_deactivate_plugin(): void {

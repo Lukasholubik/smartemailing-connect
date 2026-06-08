@@ -36,23 +36,25 @@ $fields = $settings->get_cached_customfields();
     </div>
 
     <div class="smec-card-body">
-      <?php if ( $lists === null ) : ?>
-        <p class="smec-muted smec-empty-state">Klikněte na "Načíst ze SmartEmailingu" pro zobrazení vašich seznamů.</p>
-      <?php elseif ( empty( $lists ) ) : ?>
-        <p class="smec-muted smec-empty-state">Žádné seznamy nenalezeny.</p>
-      <?php else : ?>
-        <table class="wp-list-table widefat striped smec-data-table">
-          <thead><tr><th>ID</th><th>Název</th></tr></thead>
-          <tbody>
-            <?php foreach ( $lists as $list ) : ?>
-              <tr>
-                <td><code><?php echo esc_html( $list['id'] ?? '—' ); ?></code></td>
-                <td><?php echo esc_html( $list['name'] ?? $list['publicname'] ?? '—' ); ?></td>
-              </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      <?php endif; ?>
+      <div id="smec-lists-static">
+        <?php if ( $lists === null ) : ?>
+          <p class="smec-muted smec-empty-state">Klikněte na "Načíst ze SmartEmailingu" pro zobrazení vašich seznamů.</p>
+        <?php elseif ( empty( $lists ) ) : ?>
+          <p class="smec-muted smec-empty-state">Žádné seznamy nenalezeny.</p>
+        <?php else : ?>
+          <table class="wp-list-table widefat striped smec-data-table">
+            <thead><tr><th>ID</th><th>Název</th></tr></thead>
+            <tbody>
+              <?php foreach ( $lists as $list ) : ?>
+                <tr>
+                  <td><code><?php echo esc_html( $list['id'] ?? '—' ); ?></code></td>
+                  <td><?php echo esc_html( $list['name'] ?? $list['publicname'] ?? '—' ); ?></td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        <?php endif; ?>
+      </div>
       <div id="smec-lists-container"></div>
     </div>
 
@@ -76,24 +78,26 @@ $fields = $settings->get_cached_customfields();
     </div>
 
     <div class="smec-card-body">
-      <?php if ( $fields === null ) : ?>
-        <p class="smec-muted smec-empty-state">Klikněte na "Načíst ze SmartEmailingu" pro zobrazení vlastních polí.</p>
-      <?php elseif ( empty( $fields ) ) : ?>
-        <p class="smec-muted smec-empty-state">Žádná vlastní pole nenalezena.</p>
-      <?php else : ?>
-        <table class="wp-list-table widefat striped smec-data-table">
-          <thead><tr><th>ID</th><th>Název</th><th>Typ</th></tr></thead>
-          <tbody>
-            <?php foreach ( $fields as $field ) : ?>
-              <tr>
-                <td><code><?php echo esc_html( $field['id'] ?? '—' ); ?></code></td>
-                <td><?php echo esc_html( $field['name'] ?? '—' ); ?></td>
-                <td><?php echo esc_html( $field['type'] ?? '—' ); ?></td>
-              </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      <?php endif; ?>
+      <div id="smec-fields-static">
+        <?php if ( $fields === null ) : ?>
+          <p class="smec-muted smec-empty-state">Klikněte na "Načíst ze SmartEmailingu" pro zobrazení vlastních polí.</p>
+        <?php elseif ( empty( $fields ) ) : ?>
+          <p class="smec-muted smec-empty-state">Žádná vlastní pole nenalezena.</p>
+        <?php else : ?>
+          <table class="wp-list-table widefat striped smec-data-table">
+            <thead><tr><th>ID</th><th>Název</th><th>Typ</th></tr></thead>
+            <tbody>
+              <?php foreach ( $fields as $field ) : ?>
+                <tr>
+                  <td><code><?php echo esc_html( $field['id'] ?? '—' ); ?></code></td>
+                  <td><?php echo esc_html( $field['name'] ?? '—' ); ?></td>
+                  <td><?php echo esc_html( $field['type'] ?? '—' ); ?></td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        <?php endif; ?>
+      </div>
       <div id="smec-fields-container"></div>
     </div>
 

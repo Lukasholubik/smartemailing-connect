@@ -150,6 +150,34 @@ $has_issues   = ( $counts['critical'] + $counts['warning'] ) > 0;
 </div>
 
 <!-- ═══════════════════════════════════════════
+     GRAFY AKTIVITY
+═══════════════════════════════════════════ -->
+<div class="smec-card" id="smec-charts-card">
+  <div class="smec-card-header">
+    <h2>Aktivita</h2>
+    <div class="smec-chart-period-btns">
+      <button type="button" class="button smec-period-btn smec-period-active" data-period="30d">30 dní</button>
+      <button type="button" class="button smec-period-btn" data-period="12m">12 měsíců</button>
+    </div>
+  </div>
+
+  <div id="smec-charts-loading" class="smec-chart-loading">Načítám data…</div>
+  <div id="smec-charts-body" style="display:none;">
+    <div class="smec-charts-grid">
+      <div class="smec-chart-wrap">
+        <h3 class="smec-chart-title">API volání &amp; Importy</h3>
+        <canvas id="smec-chart-activity" height="90"></canvas>
+      </div>
+      <div class="smec-chart-wrap">
+        <h3 class="smec-chart-title">Kontakty dle formuláře</h3>
+        <canvas id="smec-chart-byform" height="90"></canvas>
+        <p id="smec-chart-byform-empty" class="smec-muted" style="display:none;text-align:center;padding:20px 0;">Žádné importy v tomto období.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
      POSLEDNÍ AKTIVITA
 ═══════════════════════════════════════════ -->
 <div class="smec-two-col">
@@ -209,7 +237,11 @@ $detectable = array_filter( $all_forms, fn( $f ) => $f['detectable'] && $f['conn
         </span>
       <?php endif; ?>
     </h2>
-    <div style="display:flex;gap:8px;align-items:center;">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <div class="smec-chart-period-btns">
+        <button type="button" class="button button-small smec-monitor-period-btn smec-period-active" data-period="30d">30 dní</button>
+        <button type="button" class="button button-small smec-monitor-period-btn" data-period="12m">12 měsíců</button>
+      </div>
       <label style="font-size:0.8rem;color:#72777c;">
         <input type="checkbox" id="smec-show-ignored" style="margin-right:3px;">
         Zobrazit ignorované
@@ -233,11 +265,12 @@ $detectable = array_filter( $all_forms, fn( $f ) => $f['detectable'] && $f['conn
     <table class="wp-list-table widefat striped smec-form-monitor-table" id="smec-form-monitor-table">
       <thead>
         <tr>
-          <th style="width:22%">Formulář &amp; ID</th>
-          <th style="width:12%">Plugin</th>
-          <th style="width:26%">Stránky</th>
-          <th style="width:18%">Napojení</th>
-          <th style="width:22%">Akce</th>
+          <th style="width:20%">Formulář &amp; ID</th>
+          <th style="width:11%">Plugin</th>
+          <th style="width:23%">Stránky</th>
+          <th style="width:16%">Napojení</th>
+          <th style="width:12%" class="smec-col-sent" title="Počet úspěšně importovaných kontaktů">Odesláno <span class="smec-period-label">(30d)</span></th>
+          <th style="width:18%">Akce</th>
         </tr>
       </thead>
       <tbody>
@@ -299,6 +332,10 @@ $detectable = array_filter( $all_forms, fn( $f ) => $f['detectable'] && $f['conn
               <?php endif; ?>
             </td>
 
+            <td class="smec-col-sent">
+              <span class="smec-sent-count smec-sent-loading" data-form-type="<?php echo esc_attr( $form['type'] ); ?>" data-form-id="<?php echo esc_attr( $form['id'] ); ?>">…</span>
+            </td>
+
             <td class="smec-row-actions">
               <?php if ( $is_ignored ) : ?>
                 <button type="button"
@@ -335,6 +372,19 @@ $detectable = array_filter( $all_forms, fn( $f ) => $f['detectable'] && $f['conn
   <p class="smec-muted" style="margin-top:12px;font-size:0.8rem;">
     Data jsou cachována na 5 minut. Klikněte na ↻ Znovu skenovat pro aktualizaci.
   </p>
+</div>
+
+<!-- Modal: měsíční přehled formuláře -->
+<div id="smec-monthly-modal" class="smec-modal-overlay" style="display:none;">
+  <div class="smec-modal-box">
+    <div class="smec-modal-header">
+      <h3 id="smec-monthly-modal-title">Měsíční přehled</h3>
+      <button type="button" id="smec-monthly-modal-close" class="smec-modal-close">✕</button>
+    </div>
+    <div class="smec-modal-body">
+      <canvas id="smec-chart-monthly" height="120"></canvas>
+    </div>
+  </div>
 </div>
 
 <!-- Předáme data pro JS -->

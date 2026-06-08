@@ -58,6 +58,72 @@ Před každým `git push` automaticky provedu kontrolu:
 
 ## Záznamy
 
+### 2026-06-08 – Oprava: Vytvořit vlastní pole nefungovalo
+
+**Soubory:** `includes/Admin/Admin.php`, `assets/admin/js/admin.js`  
+**Co bylo uděláno:** Tlačítko „Vytvořit" pro vlastní pole na stránce Seznamy & Pole nemělo žádnou implementaci – ani JS handler ani PHP AJAX metodu. Přidán handler `#smec-create-field` do `initListsPage()` a nová metoda `ajax_create_customfield()` v Admin.php. Po vytvoření se automaticky smaže cache vlastních polí.  
+**Proč:** Funkce byla vizuálně v šabloně (tlačítko existovalo), ale kód za ní nikdy nebyl implementován.
+
+---
+
+### 2026-06-08 – Moduly: aktivace/deaktivace záložek v menu
+
+**Soubory:** `includes/Admin/Admin.php`, `assets/admin/js/admin.js`  
+**Co bylo uděláno:** Záložky Webtracking, Formuláře, WooCommerce, Doba čtení se nyní zobrazují/skrývají dle stavu modulu v Nastavení. Přepínání modulů se ukládá okamžitě při toggling (bez nutnosti klikat na Uložit) a stránka se po 600ms automaticky refreshuje, aby se menu aktualizovalo.  
+**Záložky vždy viditelné:** Přehled, API připojení, Seznamy & Pole, Logy, Notifikace, Nastavení.
+
+---
+
+### 2026-06-08 – Oprava false-positive varování „Nedávná chyba API"
+
+**Soubory:** `includes/Diagnostics/Diagnostics.php`, `includes/Logging/Logger.php`  
+**Co bylo uděláno:** Diagnostika zobrazovala varování o chybě API i když API mezitím začalo fungovat. Přidána metoda `has_api_success_after($datetime)` do Loggeru. V `check_api()` se varování zobrazí jen pokud: chyba nastala < 1h ago **A** od té doby neproběhlo žádné úspěšné API volání. Ověřeno: po opravě endpointu `contactlists` proběhlo 20 úspěšných volání → varování se nyní nezobrazí.  
+**Proč:** Stará chyba (404 na `contact-lists`) byla opravena, ale diagnostika to nerozpoznala.
+
+---
+
+### 2026-06-08 – Statistiky odesláno v monitoru formulářů
+
+**Soubory:** `includes/Forms/FormManager.php`, `includes/Logging/Logger.php`, `includes/Admin/Admin.php`, `templates/admin/page-overview.php`, `assets/admin/js/admin.js`, `assets/admin/css/admin.css`  
+**Co bylo uděláno:** Přidán sloupec „Odesláno" do tabulky monitoru formulářů. Přepínač 30 dní / 12 měsíců. Kliknutím na číslo otevře modal s měsíčním sloupcovým grafem (Chart.js). Doplněny klíče `form_id` a `mapping_name` do import logu v FormManager – nutné pro párování statistik s formuláři.  
+**Pozor na:** Historické logy (před touto úpravou) nemají `form_id` v kontextu – pro ně se bude zobrazovat 0. Data se naplní od teď pro nové importy.
+
+---
+
+### 2026-06-08 – Grafy aktivity na přehledu
+
+**Soubory:** `includes/Logging/Logger.php`, `includes/Admin/Admin.php`, `templates/admin/page-overview.php`, `assets/admin/js/admin.js`, `assets/admin/css/admin.css`  
+**Co bylo uděláno:** Přidány grafy na stránku Přehled. Přepínač 30 dní / 12 měsíců. Graf „API volání & Importy" (čarový, 3 série: API volání / Importy kontaktů / Chyby). Graf „Kontakty dle formuláře" (horizontální sloupcový, rozpad dle mapping name). Chart.js 4.4.0 načítán z CDN (jen na přehledové stránce). Data z tabulky `smec_logs` přes nový AJAX handler `smec_get_chart_data`.  
+**Pozor na:** Graf „dle formuláře" závisí na klíči `mapping_name` v context JSON importních logů. Pokud FormManager neloguje tento klíč, ukáže se „Jiný". Doplnit logging v FormManager při budoucích úpravách.
+
+---
+
+### 2026-06-08 – Průvodce propojením formulářů
+
+**Soubory:** `templates/admin/page-forms.php`, `assets/admin/js/admin.js`, `assets/admin/css/admin.css`  
+**Co bylo uděláno:** Nahrazena minimální nápověda plnohodnotným průvodcem rozděleným do 6 kroků + přehledem placeholderů. Průvodce je sbalitelný (toggle ▼/▶). Každá záložka editoru (Základní, Systémová pole, Vlastní pole, Štítky & Podmínky, Test) má vlastní sekci s tabulkami a příklady.  
+**Proč:** Admin nevěděl co vyplnit do jednotlivých polí (zejm. klíče polí formuláře, typy zdrojů, placeholdery).
+
+---
+
+### 2026-06-08 – Oprava endpointu contact-lists → contactlists
+
+**Soubory:** `includes/Api/ApiService.php`  
+**Co bylo uděláno:** Opraveny oba výskyty špatného endpointu `contact-lists` na `contactlists` (bez pomlčky) – v `get_contact_lists()` i `create_contact_list()`.  
+**Proč:** SmartEmailing API v3 používá konvenci bez pomlček (stejně jako `customfields`). Endpoint `contact-lists` vracel HTML 404 stránku „SmartEmailing 2.1". Diagnostikováno z DB logů `smec_logs` + ověřeno přímým voláním API.  
+**Pozor na:** Pokud by SE v budoucnu přidalo další endpointy, vždy ověřit pojmenování – konvence je camelCase/nohyphen (viz `contactlists`, `customfields`, `import`).
+
+---
+
+### 2026-06-08 – Tlačítko „Otestovat webtracking"
+
+**Soubory:** `includes/Admin/Admin.php`, `templates/admin/page-webtracking.php`, `assets/admin/js/admin.js`, `assets/admin/css/admin.css`  
+**Co bylo uděláno:** Přidáno tlačítko „Otestovat webtracking" na stránce Webtracking v adminu. Server-side AJAX handler stáhne homepage přes `wp_remote_get()` a zkontroluje přítomnost tracking skriptu a GUID ve zdrojovém kódu. Výsledek zobrazí checklistem (✅/❌) a případnými nápovědami při varování.  
+**Proč:** Admin potřeboval jednoduché ověření, zda webtracking skutečně běží – bez nutnosti ručně prohlížet zdrojový kód stránky.  
+**Pozor na:** Test vždy načítá homepage jako nepřihlášený uživatel. Pokud je aktivní caching plugin, může vidět cachovanou verzi bez tracking skriptu – to je pak false negative, ne chyba nastavení.
+
+---
+
 ### 2026-06-08 – Vytvoření dokumentační složky
 
 **Soubory:** `docs/overview.md`, `docs/settings-reference.md`, `docs/dev-log.md`  

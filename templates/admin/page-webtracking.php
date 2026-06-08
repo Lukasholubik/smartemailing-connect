@@ -128,8 +128,16 @@ $pages = get_pages( [ 'sort_column' => 'post_title', 'number' => 200 ] );
 
   <div class="smec-actions">
     <button type="button" id="smec-save-webtracking" class="button button-primary">Uložit nastavení</button>
+    <button type="button" id="smec-test-webtracking" class="button button-secondary">Otestovat webtracking</button>
     <span id="smec-wt-result" class="smec-inline-result"></span>
   </div>
+</div>
+
+<!-- ── Test výsledek ──────────────────────────────────────── -->
+<div id="smec-wt-test-result" class="smec-card" style="display:none;">
+  <h3 id="smec-wt-test-title"></h3>
+  <ul id="smec-wt-test-checks" class="smec-check-list"></ul>
+  <ul id="smec-wt-test-hints" class="smec-hint-list" style="display:none;"></ul>
 </div>
 
 <!-- ── Ověření ────────────────────────────────────────── -->

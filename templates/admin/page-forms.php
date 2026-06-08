@@ -26,27 +26,217 @@ $placeholders = [
   <button type="button" id="smec-add-mapping" class="page-title-action">+ Přidat propojení</button>
 </h1>
 
-<!-- ── Návod ─────────────────────────────────────────── -->
-<div class="smec-card smec-help-card smec-help-compact">
-  <p>
-    <strong>Jak napojit formulář:</strong> Klikněte na <em>+ Přidat propojení</em>, vyberte typ formuláře,
-    zadejte jeho název nebo ID, vyberte cílový seznam v SmartEmailingu a namapujte pole.
-    Poté uložte a otestujte tlačítkem <em>Odeslat testovací kontakt</em> na záložce Test.
-  </p>
-  <ul class="smec-help-ul">
-    <li><strong>Elementor Pro Forms</strong> – jako ID použijte hodnotu pole <em>Form Name</em> v nastavení formuláře v Elementoru.</li>
-    <li><strong>Contact Form 7</strong> – jako ID použijte číselné ID formuláře (vidíte ho v seznamu formulářů CF7).</li>
-    <li><strong>Fluent Forms / WPForms</strong> – jako ID použijte číselné ID formuláře.</li>
-    <li><strong>WP Registrace</strong> – jako ID zadejte <code>wp_registration</code>.</li>
-    <li>Použijte <code>*</code> jako ID pro zachycení všech formulářů daného typu.</li>
-  </ul>
-  <p class="smec-help-links">
-    <a href="https://app.smartemailing.cz/docs/api/v3/index.html" target="_blank" rel="noopener">API v3 dokumentace ↗</a>
-    &nbsp;&nbsp;
-    <a href="https://help.smartemailing.cz" target="_blank" rel="noopener">Centrum nápovědy SmartEmailing ↗</a>
-    &nbsp;&nbsp;
-    <a href="<?php echo esc_url( admin_url( 'admin.php?page=smec-lists' ) ); ?>">Načíst seznamy a vlastní pole →</a>
-  </p>
+<!-- ── Průvodce ────────────────────────────────────────── -->
+<div class="smec-card smec-help-card">
+  <div class="smec-guide-header" id="smec-guide-toggle" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+    <h2 style="margin:0;">📖 Průvodce propojením formulářů</h2>
+    <span class="smec-guide-arrow" style="font-size:1.2rem;">▼</span>
+  </div>
+
+  <div id="smec-guide-body" style="margin-top:20px;">
+
+    <!-- KROK 1 -->
+    <div class="smec-guide-section">
+      <h3 class="smec-guide-step">① Než začnete</h3>
+      <p>Ujistěte se, že máte:</p>
+      <ul class="smec-help-ul">
+        <li>Nakonfigurované <a href="<?php echo esc_url( admin_url('admin.php?page=smec-api') ); ?>">API připojení</a> (zelený stav).</li>
+        <li>Načtené <a href="<?php echo esc_url( admin_url('admin.php?page=smec-lists') ); ?>">Seznamy a vlastní pole</a> ze SmartEmailingu (nutné pro výběr v editorů).</li>
+        <li>Aktivní formulářový plugin (Elementor Pro, CF7, Fluent Forms nebo WPForms).</li>
+      </ul>
+    </div>
+
+    <!-- KROK 2 -->
+    <div class="smec-guide-section">
+      <h3 class="smec-guide-step">② Záložka Základní – co kde najdu?</h3>
+      <table class="smec-guide-table">
+        <tr>
+          <td><strong>Název propojení</strong></td>
+          <td>Libovolný název pro vaši orientaci. Např. <code>Newsletter – homepage</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>Typ formuláře</strong></td>
+          <td>Vyberte plugin, kterým je formulář vytvořen.</td>
+        </tr>
+        <tr>
+          <td><strong>ID / Název formuláře</strong></td>
+          <td>
+            Identifikátor konkrétního formuláře. Jak ho zjistit:
+            <ul class="smec-help-ul smec-guide-sublist">
+              <li><strong>Elementor Pro Forms</strong> → otevřete formulář v Elementoru → widget nastavení → pole <em>Form Name</em>. Zadejte přesně tuto hodnotu (rozlišuje malá/velká písmena).</li>
+              <li><strong>Contact Form 7</strong> → WP admin → Kontaktní formuláře → v seznamu u formuláře vidíte <em>ID: 42</em>. Zadejte číslo.</li>
+              <li><strong>Fluent Forms / WPForms</strong> → v seznamu formulářů vidíte ID v sloupci nebo v URL při editaci (<code>?form_id=5</code>). Zadejte číslo.</li>
+              <li><strong>WP Registrace</strong> → zadejte pevně <code>wp_registration</code>.</li>
+              <li><strong>Hvězdička <code>*</code></strong> → zachytí všechny formuláře daného typu (vhodné pokud máte jen jeden).</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Cílový seznam</strong></td>
+          <td>Vyberte seznam SmartEmailingu, do kterého se kontakty přidají. Pokud je seznam prázdný, nejdřív ho <a href="<?php echo esc_url( admin_url('admin.php?page=smec-lists') ); ?>">načtěte ze SmartEmailingu</a>.</td>
+        </tr>
+        <tr>
+          <td><strong>Stav kontaktu</strong></td>
+          <td>
+            <code>Confirmed</code> = kontakt je rovnou potvrzený (neprojde double opt-in e-mailem).<br>
+            <code>Unconfirmed</code> = SmartEmailing pošle potvrzovací e-mail. Vhodné pokud nesebíráte výslovný souhlas přímo na formuláři.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Pole souhlasu</strong></td>
+          <td>
+            Nepovinné. Zadejte název pole z formuláře, které funguje jako checkbox souhlasu (GDPR).<br>
+            Kontakt se importuje pouze pokud je toto pole zaškrtnuté (neprázdné).<br>
+            Příklad: formulář má checkbox s názvem <code>souhlas</code> → zadejte <code>souhlas</code>.
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- KROK 3 -->
+    <div class="smec-guide-section">
+      <h3 class="smec-guide-step">③ Záložka Systémová pole – mapování polí formuláře</h3>
+      <p>Tady říkáte pluginu: <em>„Toto pole z mého formuláře se uloží jako tento údaj v SmartEmailingu."</em></p>
+
+      <h4>Tři typy zdrojů hodnoty:</h4>
+      <table class="smec-guide-table">
+        <tr>
+          <td><strong>Pole formuláře</strong></td>
+          <td>
+            Hodnotu vezme z odeslaného formuláře. Do pole <em>Hodnota / Klíč pole</em> zadejte přesný název (klíč) pole z vašeho formuláře.<br>
+            <span class="smec-guide-example">Příklad: formulář má pole <code>your-email</code> → zadejte <code>your-email</code></span>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Statická hodnota</strong></td>
+          <td>
+            Vždy vloží stejný pevný text, bez ohledu na to co uživatel vyplnil.<br>
+            <span class="smec-guide-example">Příklad: chcete aby oslovení bylo vždy <code>Vážený</code> → Zdroj: Statická hodnota, Hodnota: <code>Vážený</code></span>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Placeholder</strong></td>
+          <td>
+            Automaticky vyplní systémovou proměnnou. Vyberte ze seznamu.<br>
+            <span class="smec-guide-example">Příklad: <code>__UTM_SOURCE__</code> = přenese UTM parametr z URL stránky do SmartEmailingu</span>
+          </td>
+        </tr>
+      </table>
+
+      <h4 style="margin-top:16px;">Systémová pole SmartEmailingu a jak zjistit klíče polí formuláře:</h4>
+      <table class="smec-guide-table">
+        <thead><tr><th>SE Pole</th><th>Co zadávat jako klíč (příklady)</th><th>Poznámka</th></tr></thead>
+        <tbody>
+          <tr><td><strong>E-mail</strong> *</td><td><code>your-email</code>, <code>email</code>, <code>Email</code></td><td>Povinné – bez e-mailu import selže.</td></tr>
+          <tr><td><strong>Jméno</strong></td><td><code>your-name</code>, <code>first-name</code>, <code>firstname</code></td><td></td></tr>
+          <tr><td><strong>Příjmení</strong></td><td><code>last-name</code>, <code>surname</code></td><td></td></tr>
+          <tr><td><strong>Telefon</strong></td><td><code>phone</code>, <code>tel</code>, <code>your-phone</code></td><td>Formát: <code>+420777123456</code></td></tr>
+          <tr><td><strong>Datum nar.</strong></td><td><code>birthday</code>, <code>dob</code></td><td>Formát: <code>YYYY-MM-DD</code></td></tr>
+          <tr><td><strong>Oslovení</strong></td><td>Nejčastěji Statická hodnota: <code>Vážený</code> / <code>Vážená</code></td><td>Nebo z pole formuláře.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="smec-guide-howto">
+        <strong>Jak zjistím klíče polí svého formuláře?</strong>
+        <ul class="smec-help-ul">
+          <li><strong>CF7</strong> → otevřete formulář v editoru → v HTML kódu pole hledejte atribut <code>name</code>, např. <code>[text* your-name]</code> → klíč je <code>your-name</code>.</li>
+          <li><strong>Elementor Pro</strong> → widget → obsah → každé pole má volbu <em>ID</em> – to je klíč.</li>
+          <li><strong>Fluent Forms / WPForms</strong> → editor pole → Advanced → Field Name/ID.</li>
+          <li>Obecně: zobrazte si zdrojový kód stránky a hledejte <code>name="..."</code> u inputů.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- KROK 4 -->
+    <div class="smec-guide-section">
+      <h3 class="smec-guide-step">④ Záložka Vlastní pole</h3>
+      <p>
+        Slouží pro mapování na <strong>vámi vytvořená pole</strong> v SmartEmailingu (např. Firma, Segment, Zdroj leadu).<br>
+        Nejdřív musíte <a href="<?php echo esc_url( admin_url('admin.php?page=smec-lists') ); ?>">načíst vlastní pole</a> ze SmartEmailingu – pak se zobrazí v rozbalovacím seznamu.
+      </p>
+      <p>Funguje stejně jako systémová pole: vyberete SE pole, zdroj (formulář / staticky / placeholder) a hodnotu.</p>
+      <span class="smec-guide-example">Příklad: máte v SE vlastní pole „Zdroj" (ID 15) → Zdroj: Statická hodnota, Hodnota: <code>web_form</code></span>
+    </div>
+
+    <!-- KROK 5 -->
+    <div class="smec-guide-section">
+      <h3 class="smec-guide-step">⑤ Záložka Štítky &amp; Podmínky</h3>
+
+      <h4>Štítky (Tagy)</h4>
+      <p>Kontaktu v SmartEmailingu přidáte štítek. Tagy slouží k segmentaci.</p>
+      <table class="smec-guide-table">
+        <tr>
+          <td><strong>Statická hodnota</strong></td>
+          <td>Všichni přes tento formulář dostanou tag. Př.: <code>newsletter-web</code></td>
+        </tr>
+        <tr>
+          <td><strong>Pole formuláře</strong></td>
+          <td>Tag se vezme z vybraného pole formuláře (kontakt označí sám sebe). Př.: pole <code>oblast_zajmu</code></td>
+        </tr>
+        <tr>
+          <td><strong>Placeholder</strong></td>
+          <td>Př.: <code>__UTM_CAMPAIGN__</code> – tag podle kampaně, ze které přišel</td>
+        </tr>
+      </table>
+
+      <h4 style="margin-top:16px;">Podmínky (AND logika)</h4>
+      <p>Import proběhne <strong>pouze pokud jsou splněny VŠECHNY podmínky</strong>. Vhodné pro formuláře s více účely.</p>
+      <table class="smec-guide-table">
+        <thead><tr><th>Operátor</th><th>Kdy použít</th><th>Příklad</th></tr></thead>
+        <tbody>
+          <tr><td><code>==</code></td><td>Pole má přesnou hodnotu</td><td>Pole <code>newsletter</code> == <code>yes</code></td></tr>
+          <tr><td><code>!=</code></td><td>Pole NEMÁ tuto hodnotu</td><td>Pole <code>typ</code> != <code>firma</code></td></tr>
+          <tr><td><code>obsahuje</code></td><td>Hodnota obsahuje řetězec</td><td>Pole <code>email</code> obsahuje <code>@gmail</code></td></tr>
+          <tr><td><code>není prázdné</code></td><td>Pole bylo vyplněno</td><td>Pole <code>souhlas</code> není prázdné</td></tr>
+          <tr><td><code>je prázdné</code></td><td>Pole nebylo vyplněno</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- KROK 6 -->
+    <div class="smec-guide-section">
+      <h3 class="smec-guide-step">⑥ Záložka Test</h3>
+      <p>
+        Uložte propojení a přejděte na záložku Test. Zadejte svůj e-mail a klikněte na <em>Odeslat testovací kontakt</em>.<br>
+        Plugin pošle testovací data do SmartEmailingu a oznámí vám výsledek. Pak zkontrolujte v SmartEmailingu, zda se kontakt správně importoval se všemi poli a tagy.
+      </p>
+    </div>
+
+    <!-- Placeholdery -->
+    <div class="smec-guide-section">
+      <h3 class="smec-guide-step">📋 Přehled všech placeholderů</h3>
+      <table class="smec-guide-table smec-guide-placeholders">
+        <thead><tr><th>Placeholder</th><th>Co vloží</th></tr></thead>
+        <tbody>
+          <tr><td><code>__DATE__</code></td><td>Aktuální datum (YYYY-MM-DD)</td></tr>
+          <tr><td><code>__DATE_TIME__</code></td><td>Datum a čas (YYYY-MM-DD HH:MM:SS)</td></tr>
+          <tr><td><code>__PAGE_TITLE__</code></td><td>Název stránky, kde byl formulář odeslán</td></tr>
+          <tr><td><code>__CURRENT_URL__</code></td><td>URL stránky s formulářem</td></tr>
+          <tr><td><code>__REFERRER__</code></td><td>Odkud návštěvník přišel (HTTP referrer)</td></tr>
+          <tr><td><code>__UTM_SOURCE__</code></td><td>utm_source z URL (např. <code>google</code>)</td></tr>
+          <tr><td><code>__UTM_MEDIUM__</code></td><td>utm_medium z URL (např. <code>cpc</code>)</td></tr>
+          <tr><td><code>__UTM_CAMPAIGN__</code></td><td>utm_campaign z URL</td></tr>
+          <tr><td><code>__UTM_CONTENT__</code></td><td>utm_content z URL</td></tr>
+          <tr><td><code>__UTM_TERM__</code></td><td>utm_term z URL</td></tr>
+          <tr><td><code>__SITE_NAME__</code></td><td>Název webu</td></tr>
+          <tr><td><code>__SITE_URL__</code></td><td>URL webu</td></tr>
+          <tr><td><code>__USER_ID__</code></td><td>ID přihlášeného uživatele</td></tr>
+          <tr><td><code>__USER_EMAIL__</code></td><td>E-mail přihlášeného uživatele</td></tr>
+          <tr><td><code>__FORM_NAME__</code></td><td>Název tohoto propojení</td></tr>
+          <tr><td><code>__POST_ID__</code></td><td>ID aktuálního postu/stránky</td></tr>
+          <tr><td><code>__POST_TITLE__</code></td><td>Titulek aktuálního postu/stránky</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="smec-help-links">
+      <a href="https://app.smartemailing.cz/docs/api/v3/index.html" target="_blank" rel="noopener">API v3 dokumentace ↗</a>
+      &nbsp;&nbsp;
+      <a href="https://help.smartemailing.cz" target="_blank" rel="noopener">Centrum nápovědy SmartEmailing ↗</a>
+      &nbsp;&nbsp;
+      <a href="<?php echo esc_url( admin_url( 'admin.php?page=smec-lists' ) ); ?>">Načíst seznamy a vlastní pole →</a>
+    </p>
+  </div><!-- /smec-guide-body -->
 </div>
 
 <!-- ═══════════════════════════════════════════════

@@ -32,7 +32,7 @@ class SMEC_ApiService {
 	}
 
 	public function get_contact_lists(): array {
-		$result = $this->request( 'GET', 'contact-lists', [], [ 'limit' => 100, 'offset' => 0 ] );
+		$result = $this->request( 'GET', 'contactlists', [], [ 'limit' => 100, 'offset' => 0 ] );
 		if ( ! $result['success'] ) {
 			return [ 'success' => false, 'message' => $result['error'], 'data' => [] ];
 		}
@@ -41,7 +41,7 @@ class SMEC_ApiService {
 	}
 
 	public function create_contact_list( string $name ): array {
-		$result = $this->request( 'POST', 'contact-lists', [
+		$result = $this->request( 'POST', 'contactlists', [
 			'name'             => $name,
 			'sendername'       => '',
 			'senderemail'      => '',

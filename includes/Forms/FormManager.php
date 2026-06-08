@@ -81,9 +81,11 @@ class SMEC_FormManager {
 
 		if ( $result['success'] ) {
 			$this->logger->info( 'Contact imported', [
-				'mapping_id' => $mapping['id'],
-				'form_type'  => $mapping['form_type'] ?? '',
-				'email_hash' => md5( $contact['emailaddress'] ),
+				'mapping_id'   => $mapping['id'],
+				'mapping_name' => $mapping['name']      ?? '',
+				'form_type'    => $mapping['form_type'] ?? '',
+				'form_id'      => $mapping['form_id']   ?? '',
+				'email_hash'   => md5( $contact['emailaddress'] ),
 			], 'import' );
 			do_action( 'smec_contact_imported', $contact, $mapping );
 		} else {

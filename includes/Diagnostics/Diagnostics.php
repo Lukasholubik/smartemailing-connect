@@ -125,10 +125,15 @@ class SMEC_Diagnostics {
 		}
 
 		// Zkontrolovat poslední API chybu (poslední hodinu)
+		// Varování zobrazit pouze pokud: chyba nastala < 1h ago A zároveň od té doby API
+		// neodpovědělo úspěšně (tzn. problém nebyl vyřešen).
 		$last_api_error = $this->logger->get_last_error( 'api' );
 		if ( $last_api_error ) {
 			$error_time = strtotime( $last_api_error['created_at'] );
-			if ( $error_time && ( time() - $error_time ) < 3600 ) {
+			$is_recent  = $error_time && ( time() - $error_time ) < 3600;
+			$recovered  = $is_recent && $this->logger->has_api_success_after( $last_api_error['created_at'] );
+
+			if ( $is_recent && ! $recovered ) {
 				$issues[] = [
 					'id'       => 'recent_api_error',
 					'level'    => 'warning',
