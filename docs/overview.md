@@ -8,7 +8,7 @@
 
 | Položka | Hodnota |
 |---|---|
-| Verze | 1.0.2 |
+| Verze | 1.1.0 |
 | Prefix option klíčů | `smec_` |
 | Prefix tříd | `SMEC_` |
 | DB tabulky | `{prefix}smec_logs`, `{prefix}smec_queue` |
@@ -57,7 +57,8 @@ smartemailing-connect/
 │   │       └── NativeRegistration.php
 │   │
 │   ├── WooCommerce/WooCommerceIntegration.php  ← opt-in checkbox, import na status objednávky
-│   └── ReadingTime/ReadingTime.php             ← výpočet, shortcode, Gutenberg blok, auto-insert
+│   ├── ReadingTime/ReadingTime.php             ← výpočet, shortcode, Gutenberg blok, auto-insert
+│   └── GTM/GTM.php                             ← injekce GTM skriptu do <head> a <body>
 │
 ├── templates/admin/
 │   ├── page-overview.php       ← dashboard, diagnostika, přehled fronty
@@ -67,6 +68,7 @@ smartemailing-connect/
 │   ├── page-forms.php          ← správa mappingů formulářů
 │   ├── page-woocommerce.php    ← WooCommerce nastavení
 │   ├── page-reading-time.php   ← presety doby čtení
+│   ├── page-gtm.php            ← GTM Container ID, aktivace, vyloučení rolí
 │   ├── page-logs.php           ← logy + správa fronty
 │   ├── page-notifications.php  ← e-mail/Slack/webhook alerty
 │   └── page-settings.php       ← obecná nastavení, export/import
@@ -95,6 +97,7 @@ smartemailing-connect/
 | `SMEC_ReadingTime` | ReadingTime.php | Shortcode `[smart_reading_time]`, Gutenberg blok, auto-insert |
 | `SMEC_WooCommerceIntegration` | WooCommerceIntegration.php | Opt-in checkbox + import zákazníků |
 | `SMEC_Notifier` | Notifier.php | Hourly cron – kontrola zdraví + odesílání alertů |
+| `SMEC_GTM` | GTM/GTM.php | Injekce GTM do `wp_head` + `wp_body_open` (fallback `wp_footer`) |
 | `SMEC_Diagnostics` | Diagnostics.php | `run()` – vrací pole issues |
 | `SMEC_Admin` | Admin.php | Registrace admin stránek, všechny `wp_ajax_smec_*` handlery |
 | `SMEC_Activator` | Activator.php | `activate()` / `deactivate()` – tabulky, crony, výchozí hodnoty |
@@ -188,4 +191,4 @@ Form submit
 
 ---
 
-*Tento soubor popisuje stav pluginu ke dni **2026-06-08**. Aktuální změny viz `dev-log.md`.*
+*Tento soubor popisuje stav pluginu ke dni **2026-06-08**, verze 1.1.0. Aktuální změny viz `dev-log.md`.*

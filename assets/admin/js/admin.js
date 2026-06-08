@@ -1567,6 +1567,85 @@
     },
 
     // ─────────────────────────────────────────────────────────────
+    //  GTM PAGE
+    // ─────────────────────────────────────────────────────────────
+    initGtmPage: function () {
+
+      // Live preview: extrakce Container ID z vloženého snippetu nebo přímého ID
+      $('#gtm-container').on('input', function () {
+        var val = $.trim($(this).val());
+        var id  = '';
+        if (/^GTM-[A-Z0-9]+$/i.test(val)) {
+          id = val.toUpperCase();
+        } else {
+          var m = val.match(/['"]GTM-([A-Z0-9]+)['"]/i);
+          if (m) id = 'GTM-' + m[1].toUpperCase();
+        }
+        $('#gtm-current-id').text(id || '—');
+      });
+
+      // Uložení GTM nastavení
+      $('#smec-save-gtm').on('click', function () {
+        var roles = [];
+        $('[name="exclude_roles[]"]:checked').each(function () { roles.push($(this).val()); });
+
+        var data = {
+          data: JSON.stringify({
+            enabled:        $('#gtm-enabled').is(':checked') ? 1 : 0,
+            container_id:   $('#gtm-container').val(),
+            exclude_admins: $('#gtm-exclude-admins').is(':checked') ? 1 : 0,
+            exclude_roles:  roles,
+          })
+        };
+        SMEC.ajax('save_gtm', data,
+          function (d) {
+            SMEC.showResult('#smec-gtm-result', smecAdmin.strings.saved, 'success');
+            if (d.container_id) $('#gtm-current-id').text(d.container_id);
+            $('#gtm-container').val(d.container_id || $('#gtm-container').val());
+          },
+          function (d) { SMEC.showResult('#smec-gtm-result', d.message || smecAdmin.strings.error, 'error'); }
+        );
+      });
+
+      // Test GTM
+      $('#smec-test-gtm').on('click', function () {
+        var $btn = $(this);
+        $btn.prop('disabled', true).text(smecAdmin.strings.testing);
+        $('#smec-gtm-test-result').hide();
+
+        SMEC.ajax('test_gtm', {},
+          function (data) {
+            $btn.prop('disabled', false).text('Otestovat GTM');
+
+            var statusIcon = { ok: '✅', warning: '⚠️', error: '❌', disabled: '⏸' };
+            var icon = statusIcon[data.status] || '❓';
+
+            $('#smec-gtm-test-title').text(icon + ' ' + data.message);
+
+            var $checks = $('#smec-gtm-test-checks').empty();
+            (data.checks || []).forEach(function (c) {
+              $checks.append('<li>' + (c.ok ? '✅' : '❌') + ' ' + $('<span>').text(c.label).html() + '</li>');
+            });
+
+            var $hints = $('#smec-gtm-test-hints').empty().hide();
+            if (data.hints && data.hints.length) {
+              data.hints.forEach(function (h) {
+                $hints.append('<li>' + $('<span>').text(h).html() + '</li>');
+              });
+              $hints.show();
+            }
+
+            $('#smec-gtm-test-result').show();
+          },
+          function (d) {
+            $btn.prop('disabled', false).text('Otestovat GTM');
+            SMEC.showResult('#smec-gtm-result', d.message || smecAdmin.strings.error, 'error');
+          }
+        );
+      });
+    },
+
+    // ─────────────────────────────────────────────────────────────
     //  Init
     // ─────────────────────────────────────────────────────────────
     init: function () {
@@ -1576,6 +1655,8 @@
       if ($('#smec-save-api').length)          SMEC.initApiPage();
       // Webtracking page
       if ($('#smec-save-webtracking').length)  SMEC.initWebtackingPage();
+      // GTM page
+      if ($('#smec-save-gtm').length)          SMEC.initGtmPage();
       // Lists page
       if ($('#smec-fetch-lists').length)       SMEC.initListsPage();
       // Forms page

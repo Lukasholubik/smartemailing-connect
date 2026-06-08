@@ -135,6 +135,9 @@ class SMEC_Admin {
 		if ( ! empty( $modules['reading_time'] ) ) {
 			add_submenu_page( self::MENU_SLUG, 'Doba čtení',     'Doba čtení',     self::CAPABILITY, 'smec-reading-time', [ $this, 'page_reading_time' ] );
 		}
+		if ( ! empty( $modules['gtm'] ) ) {
+			add_submenu_page( self::MENU_SLUG, 'Google Tag Manager', 'GTM',         self::CAPABILITY, 'smec-gtm',          [ $this, 'page_gtm' ] );
+		}
 
 		// Vždy zobrazit
 		add_submenu_page( self::MENU_SLUG, 'Logy',           'Logy',           self::CAPABILITY, 'smec-logs',         [ $this, 'page_logs' ] );
@@ -189,6 +192,7 @@ class SMEC_Admin {
 	public function page_forms():        void { $this->load_template( 'page-forms',         [ 'settings' => $this->settings ] ); }
 	public function page_woocommerce():  void { $this->load_template( 'page-woocommerce',   [ 'settings' => $this->settings ] ); }
 	public function page_reading_time(): void { $this->load_template( 'page-reading-time',  [ 'settings' => $this->settings ] ); }
+	public function page_gtm():          void { $this->load_template( 'page-gtm',           [ 'settings' => $this->settings ] ); }
 	public function page_logs():         void { $this->load_template( 'page-logs',          [ 'logger' => $this->logger, 'queue' => $this->queue ] ); }
 	public function page_notifications(): void { $this->load_template( 'page-notifications',  [ 'settings' => $this->settings, 'notifier' => $this->notifier ] ); }
 	public function page_settings():     void { $this->load_template( 'page-settings',      [ 'settings' => $this->settings ] ); }
@@ -201,6 +205,7 @@ class SMEC_Admin {
 			'toplevel_page_smartemailing-connect',
 			'smartemailing_page_smec-api',
 			'smartemailing_page_smec-webtracking',
+			'smartemailing_page_smec-gtm',
 			'smartemailing_page_smec-lists',
 			'smartemailing_page_smec-forms',
 			'smartemailing_page_smec-woocommerce',
@@ -293,6 +298,8 @@ class SMEC_Admin {
 			'smec_reset_notifier_state',
 			'smec_test_webtracking',
 			'smec_create_customfield',
+			'smec_save_gtm',
+			'smec_test_gtm',
 			'smec_get_chart_data',
 			'smec_get_form_monitor_stats',
 			'smec_get_form_monthly',
@@ -376,6 +383,69 @@ class SMEC_Admin {
 		if ( is_string( $data ) ) $data = json_decode( wp_unslash( $data ), true ) ?? [];
 		$this->settings->save_webtracking( (array) $data );
 		wp_send_json_success( [ 'message' => 'Webtracking nastavení uloženo.' ] );
+	}
+
+	// -------------------------------------------------------------------------
+	// AJAX: GTM
+	// -------------------------------------------------------------------------
+	private function ajax_save_gtm(): void {
+		$data = $_POST['data'] ?? [];
+		if ( is_string( $data ) ) $data = json_decode( wp_unslash( $data ), true ) ?? [];
+		$this->settings->save_gtm( (array) $data );
+		$cfg = $this->settings->get_gtm();
+		wp_send_json_success( [
+			'message'      => 'GTM nastavení uloženo.',
+			'container_id' => $cfg['container_id'],
+		] );
+	}
+
+	private function ajax_test_gtm(): void {
+		$cfg = $this->settings->get_gtm();
+
+		if ( empty( $cfg['enabled'] ) ) {
+			wp_send_json_success( [ 'status' => 'disabled', 'message' => 'GTM není aktivní. Zapněte jej v nastavení.', 'checks' => [] ] );
+			return;
+		}
+
+		$container_id = $cfg['container_id'];
+		if ( ! $container_id || ! preg_match( '/^GTM-[A-Z0-9]+$/i', $container_id ) ) {
+			wp_send_json_success( [ 'status' => 'error', 'message' => 'Container ID není platné. Zadejte ve formátu GTM-XXXXXXX.', 'checks' => [] ] );
+			return;
+		}
+
+		$checks = [
+			[ 'label' => 'GTM je aktivní', 'ok' => true ],
+			[ 'label' => 'Container ID: ' . esc_html( $container_id ), 'ok' => true ],
+		];
+
+		$response = wp_remote_get( home_url( '/' ), [
+			'timeout'    => 10,
+			'user-agent' => 'SmartEmailing Connect GTM Test',
+			'sslverify'  => false,
+		] );
+
+		if ( is_wp_error( $response ) ) {
+			wp_send_json_success( [ 'status' => 'error', 'message' => 'Nepodařilo se načíst homepage: ' . esc_html( $response->get_error_message() ), 'checks' => $checks ] );
+			return;
+		}
+
+		$body          = wp_remote_retrieve_body( $response );
+		$script_found  = str_contains( $body, 'googletagmanager.com/gtm.js' );
+		$id_found      = str_contains( $body, $container_id );
+		$noscript_found = str_contains( $body, 'googletagmanager.com/ns.html' );
+
+		$checks[] = [ 'label' => 'GTM script nalezen v <head>', 'ok' => $script_found ];
+		$checks[] = [ 'label' => 'Container ID odpovídá v kódu', 'ok' => $id_found ];
+		$checks[] = [ 'label' => 'GTM noscript nalezen v <body>', 'ok' => $noscript_found ];
+
+		if ( $script_found && $id_found ) {
+			wp_send_json_success( [ 'status' => 'ok', 'message' => 'GTM funguje správně – kód je aktivní na homepage.', 'checks' => $checks ] );
+		} else {
+			$hints = [];
+			if ( ! $script_found ) $hints[] = 'GTM script nebyl nalezen. Ověřte, že je modul aktivní a container ID správné.';
+			if ( ! $noscript_found ) $hints[] = 'Noscript tag nebyl nalezen – téma pravděpodobně nepodporuje wp_body_open(), bude umístěn do patičky.';
+			wp_send_json_success( [ 'status' => 'warning', 'message' => 'GTM je nastaven, ale kód nebyl nalezen v homepage.', 'checks' => $checks, 'hints' => $hints ] );
+		}
 	}
 
 	private function ajax_test_webtracking(): void {

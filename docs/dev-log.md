@@ -76,6 +76,27 @@ Před každým `git push` automaticky provedu kontrolu:
 
 ## Záznamy
 
+### 2026-06-08 – GTM modul – JavaScript implementace
+
+**Soubory:** `assets/admin/js/admin.js`  
+**Co bylo uděláno:** Přidána funkce `initGtmPage()` a registrace v init bloku (`#smec-save-gtm`).  
+Funkce obsahuje:
+- **Live preview Container ID** – při psaní do textarea (`#gtm-container`) okamžitě extrahuje Container ID (přímý formát `GTM-XXXXXX` i celý snippet) a zobrazuje ho pod polem.
+- **Uložení nastavení** (`#smec-save-gtm`) – odesílá `enabled`, `container_id`, `exclude_admins`, `exclude_roles[]` přes AJAX `smec_save_gtm`, po úspěchu aktualizuje zobrazené Container ID.
+- **Test GTM** (`#smec-test-gtm`) – AJAX `smec_test_gtm`, výsledek zobrazí checklistem (✅/❌) a hinty stejně jako webtracking test.
+
+**Stav GTM modulu (kompletní):**
+- `includes/GTM/GTM.php` – injekce `<head>` skriptu + noscript (`wp_body_open` + `wp_footer` fallback), vyloučení adminů/rolí, extrakce Container ID ze snippetu
+- `includes/Settings.php` – `get_gtm()` / `save_gtm()`, GTM v `modules` array
+- `includes/Plugin.php` – GTM registrace jako modul
+- `includes/Admin/Admin.php` – `page_gtm()`, AJAX handlery `ajax_save_gtm()` + `ajax_test_gtm()`
+- `templates/admin/page-gtm.php` – admin UI s formulářem, návod, info o injekci
+- `assets/admin/js/admin.js` – `initGtmPage()` s live preview, save, test
+
+**Proč:** GTM JavaScript chyběl – tlačítka Uložit a Otestovat nefungovala.
+
+---
+
 ### 2026-06-08 – Oprava: Vytvořit vlastní pole nefungovalo
 
 **Soubory:** `includes/Admin/Admin.php`, `assets/admin/js/admin.js`  
