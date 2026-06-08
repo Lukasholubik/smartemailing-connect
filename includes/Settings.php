@@ -155,6 +155,7 @@ class SMEC_Settings {
 				'forms'        => 1,
 				'woocommerce'  => 1,
 				'reading_time' => 1,
+				'gtm'          => 1,
 			],
 		];
 		$saved = (array) get_option( 'smec_general_settings', [] );
@@ -165,7 +166,7 @@ class SMEC_Settings {
 	}
 
 	public function save_general( array $data ): void {
-		$allowed_modules = [ 'webtracking', 'forms', 'woocommerce', 'reading_time' ];
+		$allowed_modules = [ 'webtracking', 'forms', 'woocommerce', 'reading_time', 'gtm' ];
 		$modules = [];
 		foreach ( $allowed_modules as $m ) {
 			$modules[ $m ] = ! empty( $data['modules'][ $m ] ) ? 1 : 0;
@@ -460,6 +461,39 @@ class SMEC_Settings {
 			'tags'                 => array_map( 'sanitize_text_field', (array) ( $data['tags'] ?? [] ) ),
 		];
 		update_option( 'smec_woocommerce_settings', $clean );
+	}
+
+	// -------------------------------------------------------------------------
+	// GTM
+	// -------------------------------------------------------------------------
+	public function get_gtm(): array {
+		$defaults = [
+			'enabled'        => 0,
+			'container_id'   => '',
+			'exclude_admins' => 1,
+			'exclude_roles'  => [],
+		];
+		$saved = (array) get_option( 'smec_gtm_settings', [] );
+		return wp_parse_args( $saved, $defaults );
+	}
+
+	public function save_gtm( array $data ): void {
+		$container_id = sanitize_text_field( $data['container_id'] ?? '' );
+
+		// Pokud uživatel vložil celý GTM snippet, extrahujeme container ID
+		if ( ! empty( $container_id ) && ! preg_match( '/^GTM-[A-Z0-9]+$/i', $container_id ) ) {
+			$container_id = SMEC_GTM::extract_container_id( $container_id );
+		} else {
+			$container_id = strtoupper( $container_id );
+		}
+
+		$clean = [
+			'enabled'        => ! empty( $data['enabled'] ) ? 1 : 0,
+			'container_id'   => $container_id,
+			'exclude_admins' => ! empty( $data['exclude_admins'] ) ? 1 : 0,
+			'exclude_roles'  => array_map( 'sanitize_key', (array) ( $data['exclude_roles'] ?? [] ) ),
+		];
+		update_option( 'smec_gtm_settings', $clean );
 	}
 
 	// -------------------------------------------------------------------------

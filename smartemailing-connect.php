@@ -63,6 +63,7 @@ $smec_files = [
 	'includes/Forms/Integrations/NativeRegistration.php',
 	'includes/WooCommerce/WooCommerceIntegration.php',
 	'includes/ReadingTime/ReadingTime.php',
+	'includes/GTM/GTM.php',
 	'includes/Admin/Admin.php',
 	'includes/Activator.php',
 	'includes/Plugin.php',

@@ -46,6 +46,7 @@ Přístup vždy přes `SMEC_Settings` (nikdy `get_option` napřímo v business l
         'forms'        => 1,
         'woocommerce'  => 1,
         'reading_time' => 1,
+        'gtm'          => 1,
     ],
 ]
 ```
@@ -169,6 +170,21 @@ Pole presetů – každý preset je pole:
 ```
 
 **Order meta klíč pro opt-in:** `_smec_newsletter_optin`
+
+---
+
+## smec_gtm_settings
+
+```php
+[
+    'enabled'        => 0|1,
+    'container_id'   => 'GTM-XXXXXXX',  // uloženo vždy jako čisté ID (ne celý snippet)
+    'exclude_admins' => 0|1,            // GTM se nevloží administrátorům
+    'exclude_roles'  => ['editor'],     // pole slugů rolí, jimž se GTM nevloží
+]
+```
+
+Injekce: `<head>` přes `wp_head` (priorita 1), `<body>` přes `wp_body_open` (priorita 1), fallback do `wp_footer`.
 
 ---
 
@@ -313,6 +329,13 @@ Použij jako `source: placeholder` a `value: __PLACEHOLDER__`:
 | `smec_save_notifications` | Uložení notifikačních nastavení |
 | `smec_test_notification` | Odeslání testovacího alertu |
 | `smec_reset_notifier_state` | Reset čítačů chyb |
+| `smec_test_webtracking` | Test webtracking injekce na homepage |
+| `smec_save_gtm` | Uložení GTM nastavení |
+| `smec_test_gtm` | Test GTM injekce na homepage |
+| `smec_create_customfield` | Vytvoření nového vlastního pole v SE |
+| `smec_get_chart_data` | Data pro grafy aktivity |
+| `smec_get_form_monitor_stats` | Statistiky monitoru formulářů |
+| `smec_get_form_monthly` | Měsíční statistiky konkrétního formuláře |
 
 ---
 

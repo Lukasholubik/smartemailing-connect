@@ -11,6 +11,7 @@ class SMEC_Plugin {
 	private SMEC_FormManager         $form_manager;
 	private SMEC_MappingProcessor    $processor;
 	private SMEC_ReadingTime         $reading_time;
+	private SMEC_GTM                 $gtm;
 	private SMEC_Diagnostics         $diagnostics;
 	private SMEC_Notifier            $notifier;
 	private SMEC_Admin               $admin;
@@ -24,6 +25,7 @@ class SMEC_Plugin {
 		$this->form_manager = new SMEC_FormManager( $this->settings, $this->api, $this->processor, $this->queue, $this->logger );
 		$this->webtracking  = new SMEC_Webtracking( $this->settings, $this->logger );
 		$this->reading_time = new SMEC_ReadingTime( $this->settings );
+		$this->gtm          = new SMEC_GTM( $this->settings );
 		$this->diagnostics  = new SMEC_Diagnostics( $this->settings, $this->logger, $this->queue );
 		$this->notifier     = new SMEC_Notifier( $this->settings, $this->logger, $this->queue );
 		$this->admin        = new SMEC_Admin( $this->settings, $this->api, $this->form_manager, $this->queue, $this->logger, $this->diagnostics, $this->notifier );
@@ -53,6 +55,11 @@ class SMEC_Plugin {
 		// Module: reading time
 		if ( ! empty( $modules['reading_time'] ) ) {
 			$this->reading_time->register();
+		}
+
+		// Module: GTM
+		if ( ! empty( $modules['gtm'] ) ) {
+			$this->gtm->register();
 		}
 
 		// Cron: queue processing

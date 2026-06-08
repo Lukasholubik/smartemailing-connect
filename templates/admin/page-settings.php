@@ -17,6 +17,7 @@ $cfg = $settings->get_general();
       'forms'        => 'Propojení formulářů',
       'woocommerce'  => 'WooCommerce integrace',
       'reading_time' => 'Modul Doba čtení',
+      'gtm'          => 'Google Tag Manager',
     ];
     foreach ( $module_labels as $key => $label ) : ?>
     <tr>
