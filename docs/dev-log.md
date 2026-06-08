@@ -13,6 +13,19 @@
   1. Bezpečnostní a penetrační audit změněného kódu (viz sekce níže)
   2. Opravím všechny nalezené problémy
   3. `git add` + `git commit` + `git push`
+
+- **Nasazení na live (release):** Napíše-li uživatel "commitni do live", "nasaď na live", "vydej verzi" nebo podobně, provedu bez ptaní celý tento postup:
+  1. Bump verze v `smartemailing-connect.php` (hlavička `Version:` + `define('SMEC_VERSION', ...)`)
+  2. Aktualizovat `CHANGELOG.md` se seznamem změn
+  3. `git add` + `git commit` (`chore: bump version to X.Y.Z`)
+  4. `git tag vX.Y.Z`
+  5. `git push origin main --tags`
+  6. Vytvořit GitHub Release přes API (token je uložen v paměti Claude – reference-github-token):
+     ```powershell
+     $payload = @{ tag_name="vX.Y.Z"; name="SmartEmailing Connect X.Y.Z"; body="changelog text"; draft=$false; prerelease=$false } | ConvertTo-Json -Depth 3
+     Invoke-WebRequest -Uri "https://api.github.com/repos/Lukasholubik/smartemailing-connect/releases" -Method POST -Headers @{Authorization="token GITHUB_TOKEN_ZE_PAMETI"; Accept="application/vnd.github.v3+json"; "User-Agent"="Claude-Code"} -Body $payload -ContentType "application/json" -UseBasicParsing
+     ```
+  7. Sdělit uživateli: jdi na **WP Admin → Dashboard → Aktualizace → Zkontrolovat znovu**
 - **Vybízení k pushování:** Sám aktivně připomenu push po větší ucelené změně nebo sérii úprav – nikdy nenechám kód dlouho jen lokálně.
 - **Commit zprávy:** Stručně popisují co a proč (česky nebo anglicky dle kontextu), ne jak.
 - **Po každé změně:** Záznam do tohoto `dev-log.md` (datum, soubory, co, proč).
