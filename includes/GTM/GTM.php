@@ -23,12 +23,29 @@ class SMEC_GTM {
 		if ( ! $this->should_inject() ) return;
 
 		$id = esc_js( $this->settings->get_gtm()['container_id'] );
-		echo "\n<!-- Google Tag Manager (SmartEmailing Connect) -->\n";
-		echo '<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({\'gtm.start\':' . "\n";
-		echo 'new Date().getTime(),event:\'gtm.js\'});var f=d.getElementsByTagName(s)[0],' . "\n";
-		echo 'j=d.createElement(s),dl=l!=\'dataLayer\'?\'&l=\'+l:\'\';j.async=true;j.src=' . "\n";
-		echo '\'https://www.googletagmanager.com/gtm.js?id=\'+i+dl;f.parentNode.insertBefore(j,f);' . "\n";
-		echo '})(window,document,\'script\',\'dataLayer\',\'' . $id . '\');</script>' . "\n";
+		echo "\n<!-- Google Tag Manager – lazy load (SmartEmailing Connect) -->\n";
+		echo '<script>' . "\n";
+		// dataLayer inicializujeme okamžitě – události pushnuté před načtením GTM se neztrácejí
+		echo 'window.dataLayer=window.dataLayer||[];' . "\n";
+		echo '(function(){' . "\n";
+		echo 'var loaded=false;' . "\n";
+		echo 'function loadGTM(){' . "\n";
+		echo '  if(loaded)return;loaded=true;' . "\n";
+		echo '  (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({\'gtm.start\':new Date().getTime(),event:\'gtm.js\'});' . "\n";
+		echo '  var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!=\'dataLayer\'?\'&l=\'+l:\'\';' . "\n";
+		echo '  j.async=true;j.src=\'https://www.googletagmanager.com/gtm.js?id=\'+i+dl;' . "\n";
+		echo '  f.parentNode.insertBefore(j,f);' . "\n";
+		echo '  })(window,document,\'script\',\'dataLayer\',\'' . $id . '\');' . "\n";
+		echo '}' . "\n";
+		// Načti po 3 sekundách nebo při první interakci uživatele
+		echo 'var t=setTimeout(loadGTM,3000);' . "\n";
+		echo 'function onInt(){clearTimeout(t);loadGTM();}' . "\n";
+		echo 'document.addEventListener("scroll",onInt,{once:true,passive:true});' . "\n";
+		echo 'document.addEventListener("click",onInt,{once:true});' . "\n";
+		echo 'document.addEventListener("touchstart",onInt,{once:true,passive:true});' . "\n";
+		echo 'document.addEventListener("keydown",onInt,{once:true});' . "\n";
+		echo '})();' . "\n";
+		echo '</script>' . "\n";
 		echo "<!-- End Google Tag Manager -->\n\n";
 	}
 
