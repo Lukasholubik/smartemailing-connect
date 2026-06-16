@@ -481,6 +481,25 @@ class SMEC_Notifier {
 	}
 
 	// -------------------------------------------------------------------------
+	// Health check alert (voláno z SMEC_HealthCheck)
+	// -------------------------------------------------------------------------
+	public function send_health_alert( array $failures, array $cfg ): array {
+		$count  = count( $failures );
+		$suffix = $count > 1 ? 'y' : '';
+		$lines  = [];
+		foreach ( $failures as $f ) {
+			$lines[] = '• ' . $f['check'] . ': ' . $f['detail'];
+		}
+
+		$subject = 'HEALTH CHECK: ' . $count . ' problém' . $suffix . ' nalezen' . $suffix;
+		$body    = 'Automatická kontrola SmartEmailing Connect (každých 24h) nalezla ' . $count . ' kritický problém' . $suffix . ":\n\n"
+			. implode( "\n", $lines ) . "\n\n"
+			. 'Přejděte do administrace a zkontrolujte Přehled nebo Logy → Diagnostika.';
+
+		return $this->dispatch( 'health_check', $cfg, $subject, $body );
+	}
+
+	// -------------------------------------------------------------------------
 	// SMTP diagnostika
 	// -------------------------------------------------------------------------
 	public function get_mail_diagnostics(): array {

@@ -23,6 +23,7 @@ $done    = $queue->count_items( 'done' );
       <option value="webtracking">Webtracking</option>
       <option value="woocommerce">WooCommerce</option>
       <option value="queue">Fronta</option>
+      <option value="system">Systém</option>
       <option value="general">Obecné</option>
     </select>
     <select id="log-level">
@@ -35,6 +36,7 @@ $done    = $queue->count_items( 'done' );
     <button type="button" id="smec-load-logs" class="button">Načíst</button>
     <button type="button" id="smec-clear-logs-all" class="button smec-danger-btn">Smazat vše</button>
     <button type="button" id="smec-clear-logs-old" class="button">Smazat starší 30 dní</button>
+    <a href="#" id="smec-export-logs" class="button" title="Stáhne diagnostický JSON soubor se všemi logy, health check výsledkem a diagnostikou. Ideální pro sdílení s podporou.">⬇ Export logů (diagnostický soubor)</a>
   </div>
   <div id="smec-logs-table-wrap">
     <p class="smec-muted">Klikněte na "Načíst" pro zobrazení logů.</p>
@@ -70,6 +72,48 @@ $done    = $queue->count_items( 'done' );
     <tr><td>DB verze</td><td><?php echo esc_html(get_option('smec_db_version','—')); ?></td></tr>
     <tr><td>Příští cron (queue)</td><td><?php $next = wp_next_scheduled('smec_process_queue'); echo $next ? esc_html(date_i18n('Y-m-d H:i:s',$next)) : '—'; ?></td></tr>
   </table>
+
+  <h3 style="margin-top:24px;">Health check (24h automatická kontrola)</h3>
+  <?php
+    $hc = get_option('smec_health_last_check', null);
+    $hc_next = wp_next_scheduled('smec_health_check');
+    if ($hc && is_array($hc)) {
+      $hc_time = date_i18n('Y-m-d H:i:s', $hc['timestamp']);
+      $hc_status = $hc['status'] === 'ok'
+        ? '<span style="color:#00a32a;font-weight:600;">✓ OK</span>'
+        : '<span style="color:#c9372c;font-weight:600;">✗ Nalezeny problémy (' . (int)($hc['failures_count'] ?? 0) . ')</span>';
+    } else {
+      $hc_time = '—';
+      $hc_status = '<span class="smec-muted">Ještě neproběhla</span>';
+    }
+  ?>
+  <table class="widefat" style="margin-bottom:12px;">
+    <tr>
+      <td>Poslední kontrola</td>
+      <td><?php echo $hc_time; ?></td>
+    </tr>
+    <tr>
+      <td>Stav</td>
+      <td><?php echo $hc_status; ?></td>
+    </tr>
+    <?php if ($hc && !empty($hc['failures'])): ?>
+    <tr>
+      <td colspan="2">
+        <ul style="margin:4px 0 0 16px;padding:0;color:#c9372c;">
+          <?php foreach ($hc['failures'] as $f): ?>
+            <li><?php echo esc_html($f['check']); ?>: <?php echo esc_html(mb_substr($f['detail'], 0, 200)); ?></li>
+          <?php endforeach; ?>
+        </ul>
+      </td>
+    </tr>
+    <?php endif; ?>
+    <tr>
+      <td>Příští kontrola</td>
+      <td><?php echo $hc_next ? esc_html(date_i18n('Y-m-d H:i:s', $hc_next)) : '—'; ?></td>
+    </tr>
+  </table>
+  <button type="button" id="smec-health-check-now" class="button">▶ Spustit kontrolu nyní</button>
+  <div id="smec-health-result" class="smec-notice" style="display:none;margin-top:8px;"></div>
 </div>
 
 </div>

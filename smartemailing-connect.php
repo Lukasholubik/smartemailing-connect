@@ -4,7 +4,7 @@
  * Plugin URI:  https://reboost.cz
  * Description: Universal WordPress connector for SmartEmailing – API integration, webtracking, form connections, WooCommerce support, and reading time module.
  * Version:     1.2.0
- * Author:      Lukáš Holubík
+ * Author:      Lukáš Holubík - Grou.cz
  * Text Domain: smartemailing-connect
  * Domain Path: /languages
  * Requires at least: 6.0
@@ -64,6 +64,7 @@ $smec_files = [
 	'includes/WooCommerce/WooCommerceIntegration.php',
 	'includes/ReadingTime/ReadingTime.php',
 	'includes/GTM/GTM.php',
+	'includes/HealthCheck/HealthCheck.php',
 	'includes/Admin/Admin.php',
 	'includes/Activator.php',
 	'includes/Plugin.php',

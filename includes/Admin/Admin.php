@@ -303,11 +303,16 @@ class SMEC_Admin {
 			'smec_get_chart_data',
 			'smec_get_form_monitor_stats',
 			'smec_get_form_monthly',
+			'smec_health_check_now',
+			'smec_get_health_status',
 		];
 
 		foreach ( $actions as $action ) {
 			add_action( 'wp_ajax_' . $action, [ $this, 'handle_ajax' ] );
 		}
+
+		// Log export – separate handler (file download, not JSON response)
+		add_action( 'wp_ajax_smec_export_logs', [ $this, 'handle_export_logs' ] );
 	}
 
 	// Akce s rate limitem (max N volání za okno)
@@ -1034,5 +1039,93 @@ class SMEC_Admin {
 			];
 		}
 		return $clean;
+	}
+
+	// -------------------------------------------------------------------------
+	// AJAX: Health check
+	// -------------------------------------------------------------------------
+
+	private function ajax_health_check_now(): void {
+		do_action( 'smec_health_check' );
+		$result = get_option( 'smec_health_last_check', [] );
+		wp_send_json_success( [
+			'message' => 'Kontrola dokončena.',
+			'result'  => $result,
+		] );
+	}
+
+	private function ajax_get_health_status(): void {
+		$result    = get_option( 'smec_health_last_check', null );
+		$next      = (int) wp_next_scheduled( 'smec_health_check' );
+		wp_send_json_success( [
+			'result'        => is_array( $result ) ? $result : null,
+			'next_scheduled'=> $next,
+		] );
+	}
+
+	// -------------------------------------------------------------------------
+	// Log export – file download (not a standard JSON AJAX response)
+	// -------------------------------------------------------------------------
+
+	public function handle_export_logs(): void {
+		if ( ! current_user_can( self::CAPABILITY ) ) {
+			wp_die( 'Přístup odepřen.', 403 );
+		}
+
+		$nonce = sanitize_text_field( $_GET['nonce'] ?? '' );
+		if ( ! wp_verify_nonce( $nonce, self::NONCE_ACTION ) ) {
+			wp_die( 'Neplatný bezpečnostní token.', 403 );
+		}
+
+		$cfg = $this->settings->get_api();
+
+		$logs = $this->logger->get_logs( [ 'limit' => 1000, 'offset' => 0 ] );
+		$logs_parsed = array_map( static function ( array $log ): array {
+			$ctx = null;
+			if ( ! empty( $log['context'] ) ) {
+				$ctx = json_decode( $log['context'], true );
+			}
+			return [
+				'id'         => (int) $log['id'],
+				'created_at' => $log['created_at'],
+				'type'       => $log['type'],
+				'level'      => $log['level'],
+				'message'    => $log['message'],
+				'context'    => $ctx,
+			];
+		}, $logs );
+
+		global $wp_version;
+
+		$export = [
+			'_meta' => [
+				'generated_at'   => current_time( 'c' ),
+				'plugin_version' => SMEC_VERSION,
+				'wp_version'     => $wp_version,
+				'php_version'    => PHP_VERSION,
+				'site_url'       => get_site_url(),
+				'api_username'   => $cfg['username'] ?? '(not set)',
+				'api_base_url'   => $cfg['base_url'] ?? '',
+			],
+			'health_check' => get_option( 'smec_health_last_check', null ),
+			'diagnostics'  => $this->diagnostics->run(),
+			'logs'         => $logs_parsed,
+		];
+
+		$filename = 'smec-diagnostic-' . gmdate( 'Y-m-d-His' ) . '.json';
+
+		// Prevent any output buffering interference
+		while ( ob_get_level() ) {
+			ob_end_clean();
+		}
+
+		header( 'Content-Type: application/json; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+		header( 'Cache-Control: no-cache, no-store, must-revalidate' );
+		header( 'Pragma: no-cache' );
+		header( 'Expires: 0' );
+
+		echo wp_json_encode( $export, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+		exit;
 	}
 }

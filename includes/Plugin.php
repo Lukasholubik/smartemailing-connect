@@ -15,6 +15,7 @@ class SMEC_Plugin {
 	private SMEC_Diagnostics         $diagnostics;
 	private SMEC_Notifier            $notifier;
 	private SMEC_Admin               $admin;
+	private SMEC_HealthCheck         $health_check;
 
 	public function run(): void {
 		$this->settings     = new SMEC_Settings();
@@ -28,6 +29,7 @@ class SMEC_Plugin {
 		$this->gtm          = new SMEC_GTM( $this->settings );
 		$this->diagnostics  = new SMEC_Diagnostics( $this->settings, $this->logger, $this->queue );
 		$this->notifier     = new SMEC_Notifier( $this->settings, $this->logger, $this->queue );
+		$this->health_check = new SMEC_HealthCheck( $this->settings, $this->logger, $this->diagnostics, $this->api, $this->notifier );
 		$this->admin        = new SMEC_Admin( $this->settings, $this->api, $this->form_manager, $this->queue, $this->logger, $this->diagnostics, $this->notifier );
 
 		$modules = $this->settings->get_general()['modules'] ?? [];
@@ -69,6 +71,9 @@ class SMEC_Plugin {
 		$this->notifier->register();
 		$this->api->set_notifier( $this->notifier );
 		$this->webtracking->set_notifier( $this->notifier );
+
+		// Health check: 24h cron
+		$this->health_check->schedule();
 
 		// Admin notice: conflict with official SmartEmailing plugin
 		if ( is_admin() ) {

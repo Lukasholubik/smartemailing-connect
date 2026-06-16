@@ -580,6 +580,29 @@
           $('#smec-queue-result').show();
         });
       });
+
+      // Export logů – přímý download přes GET
+      $('#smec-export-logs').on('click', function (e) {
+        e.preventDefault();
+        window.location.href = smecAdmin.ajaxUrl + '?action=smec_export_logs&nonce=' + encodeURIComponent(SMEC.nonce);
+      });
+
+      // Health check – spustit nyní
+      $('#smec-health-check-now').on('click', function () {
+        var btn = $(this);
+        btn.prop('disabled', true).text('Probíhá kontrola…');
+        SMEC.ajax('health_check_now', {}, function (d) {
+          btn.prop('disabled', false).text('▶ Spustit kontrolu nyní');
+          var r = d.result || {};
+          var status = r.status === 'ok'
+            ? '<span style="color:#00a32a;font-weight:600;">✓ Vše v pořádku</span>'
+            : '<span style="color:#c9372c;font-weight:600;">✗ Nalezeny problémy (' + (r.failures_count || 0) + '). Obnovte stránku pro detaily.</span>';
+          $('#smec-health-result').html(status).show();
+        }, function (err) {
+          btn.prop('disabled', false).text('▶ Spustit kontrolu nyní');
+          $('#smec-health-result').html('<span style="color:#c9372c;">' + SMEC.esc(err.message || 'Chyba') + '</span>').show();
+        });
+      });
     },
 
     loadLogs: function () {
