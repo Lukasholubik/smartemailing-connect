@@ -34,7 +34,7 @@ class SMEC_ApiService {
 	public function get_contact_lists(): array {
 		$result = $this->request( 'GET', 'contactlists', [], [ 'limit' => 100, 'offset' => 0 ] );
 		if ( ! $result['success'] ) {
-			return [ 'success' => false, 'message' => $result['error'], 'data' => [] ];
+			return [ 'success' => false, 'message' => $result['error'], 'code' => $result['code'] ?? 0, 'data' => [] ];
 		}
 		$data = $result['body']['data'] ?? $result['body'] ?? [];
 		return [ 'success' => true, 'data' => $data ];
@@ -58,7 +58,7 @@ class SMEC_ApiService {
 	public function get_custom_fields( int $limit = 100, int $offset = 0 ): array {
 		$result = $this->request( 'GET', 'customfields', [], [ 'limit' => $limit, 'offset' => $offset ] );
 		if ( ! $result['success'] ) {
-			return [ 'success' => false, 'message' => $result['error'], 'data' => [] ];
+			return [ 'success' => false, 'message' => $result['error'], 'code' => $result['code'] ?? 0, 'data' => [] ];
 		}
 		$data = $result['body']['data'] ?? $result['body'] ?? [];
 		return [ 'success' => true, 'data' => $data ];

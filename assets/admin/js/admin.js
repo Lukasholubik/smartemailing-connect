@@ -31,6 +31,23 @@
       el.text(msg).removeClass('success error').addClass(type || 'success').show();
     },
 
+    // Zobrazí chybu API v kontejneru s HTTP kódem a nápovědou
+    showApiError: function (d, container) {
+      var msg  = d.message || smecAdmin.strings.error;
+      var code = d.code || 0;
+      var hint = '';
+      if (code === 401 || code === 403) {
+        hint = '<br><strong>Tip:</strong> HTTP ' + code + ' – neplatné nebo expirované přihlašovací údaje. <a href="' + smecAdmin.ajaxUrl.replace('admin-ajax.php', 'admin.php?page=smec-api') + '">Ověřte API klíč →</a>';
+      } else if (code === 404) {
+        hint = '<br><strong>Tip:</strong> HTTP 404 – chybná API URL. Zkontrolujte Base URL v <a href="' + smecAdmin.ajaxUrl.replace('admin-ajax.php', 'admin.php?page=smec-api') + '">API nastavení</a>.';
+      } else if (code >= 500) {
+        hint = '<br><strong>Tip:</strong> HTTP ' + code + ' – server SmartEmailing vrátil chybu. Zkuste to znovu za chvíli.';
+      } else if (code) {
+        hint = '<br><small class="smec-muted">HTTP ' + code + '</small>';
+      }
+      $(container).html('<div class="smec-api-error notice notice-error inline" style="margin:8px 0;padding:8px 12px;">' + SMEC.esc(msg) + hint + '</div>').show();
+    },
+
     // ── Collect form data from a table or section ─────────────────
     collectTableForm: function (wrapper) {
       var data = {};
@@ -189,7 +206,7 @@
           },
           function (d) {
             btn.prop('disabled', false).text('↻ Načíst ze SmartEmailingu');
-            alert(d.message);
+            SMEC.showApiError(d, '#smec-lists-container');
           }
         );
       });
@@ -215,7 +232,7 @@
           },
           function (d) {
             btn.prop('disabled', false).text('↻ Načíst ze SmartEmailingu');
-            alert(d.message);
+            SMEC.showApiError(d, '#smec-fields-container');
           }
         );
       });
@@ -584,10 +601,35 @@
         html += '<tr><td>' + SMEC.esc(l.created_at) + '</td><td>' + SMEC.esc(l.type) + '</td>';
         html += '<td><span class="smec-level-' + SMEC.esc(l.level) + '">' + SMEC.esc(l.level) + '</span></td>';
         html += '<td>' + SMEC.esc(l.message);
-        if (l.context) { html += ' <small class="smec-muted">[kontext]</small>'; }
+        if (l.context) {
+          try {
+            var ctx = typeof l.context === 'string' ? JSON.parse(l.context) : l.context;
+            // Zobrazit klíčové info inline (HTTP kód + endpoint)
+            var badge = '';
+            if (ctx.code)     badge += ' <code style="background:#f0f0f1;padding:1px 5px;border-radius:3px;font-size:11px;">HTTP ' + SMEC.esc(String(ctx.code)) + '</code>';
+            if (ctx.endpoint) badge += ' <code style="background:#f0f0f1;padding:1px 5px;border-radius:3px;font-size:11px;">' + SMEC.esc(ctx.endpoint) + '</code>';
+            html += badge;
+            // Klikatelný toggle pro celý kontext
+            var ctxId = 'smec-ctx-' + Math.random().toString(36).slice(2);
+            html += ' <a href="#" class="smec-ctx-toggle smec-muted" data-target="' + ctxId + '" style="font-size:11px;">[detail ▾]</a>';
+            html += '<pre id="' + ctxId + '" class="smec-ctx-pre" style="display:none;margin:4px 0 0 0;padding:6px;background:#f6f7f7;border:1px solid #dcdcde;border-radius:3px;font-size:11px;white-space:pre-wrap;word-break:break-all;">' + SMEC.esc(JSON.stringify(ctx, null, 2)) + '</pre>';
+          } catch (e) {
+            html += ' <small class="smec-muted">[kontext]</small>';
+          }
+        }
         html += '</td></tr>';
       });
       html += '</tbody></table>';
+
+      // Event delegation pro toggle – funguje i po re-renderu tabulky
+      $('#smec-logs-table-wrap').off('click.smecctx').on('click.smecctx', '.smec-ctx-toggle', function (e) {
+        e.preventDefault();
+        var pre = document.getElementById($(this).data('target'));
+        if (!pre) return;
+        var visible = pre.style.display !== 'none';
+        pre.style.display = visible ? 'none' : 'block';
+        $(this).text(visible ? '[detail ▾]' : '[detail ▴]');
+      });
       $('#smec-logs-table-wrap').html(html);
 
       // Pagination
