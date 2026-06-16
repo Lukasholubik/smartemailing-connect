@@ -89,6 +89,58 @@ Před každým `git push` automaticky provedu kontrolu:
 
 ## Záznamy
 
+### 2026-06-16 – 24h Health Check Cron + Export logů (diagnostický soubor)
+
+**Soubory:**
+- `includes/HealthCheck/HealthCheck.php` (nový)
+- `includes/Notifications/Notifier.php` (nová metoda `send_health_alert()`)
+- `includes/Plugin.php` (property + `schedule()`)
+- `smartemailing-connect.php` (autoloader)
+- `includes/Admin/Admin.php` (AJAX: `health_check_now`, `get_health_status`, download handler `handle_export_logs`)
+- `templates/admin/page-logs.php` (widget + export tlačítko)
+- `assets/admin/js/admin.js` (JS handlery)
+
+**Co bylo uděláno:**
+
+**Health check (24h cron):**
+- Nová třída `SMEC_HealthCheck` – registruje WP-Cron event `smec_health_check` každých 24h
+- `run()` provede: live API ping + všechny critical `SMEC_Diagnostics` checks + kontrola WP-Cron aktivity (varuje po 12h nečinnosti)
+- Výsledek uložen v `smec_health_last_check` (WP option) – status, failures_count, checks[], failures[]
+- Při nalezení problémů odešle e-mail/Slack přes `Notifier::send_health_alert()` s 24h cooldownem
+- Cooldown stav v `smec_health_check_state` option
+- V admin Logy → Diagnostika: widget s poslední kontrolou, stavem, seznamem problémů a "Spustit kontrolu nyní"
+
+**Export logů:**
+- Tlačítko "⬇ Export logů (diagnostický soubor)" na stránce Logy
+- Stáhne `.json` soubor s: meta (verze, PHP, WP, URL, API username), health_check výsledek, live diagnostics scan, posledních 1000 logů s parsovaným context
+- API klíč NENÍ v exportu (pouze username) – bezpečné pro sdílení
+- Ideální pro odeslání Claudovi nebo vývojáři při problému
+
+**Proč:**
+- Uživatel požadoval: "přidej kontrolu každých 24h, že všechno běží, pokud bude problém ihned odešli notifikaci"
+- Export logů: uživatel chce mít možnost jednoduše sdílet diagnostiku bez ručního kopírování
+
+**Kde v kódu:**
+- `SMEC_HealthCheck::run()` – hlavní check logika
+- `SMEC_HealthCheck::schedule()` – registrace cronu (volá se z Plugin::run())
+- `SMEC_Notifier::send_health_alert()` – odeslání alertu
+- `SMEC_Admin::ajax_health_check_now()` – manuální spuštění přes AJAX
+- `SMEC_Admin::handle_export_logs()` – file download (registrován samostatně mimo handle_ajax)
+
+**Pozor na:**
+- Export endpoint (`smec_export_logs`) je registrován jako `wp_ajax_*` GET request – ověřuje nonce z `$_GET['nonce']`
+- `handle_export_logs()` je `public` (ne `private`) protože je registrován přes `add_action`
+- HealthCheck unschedule() není volán při deaktivaci – TODO přidat do `Activator::deactivate()`
+- První cron se naplánuje za +1h od aktivace (ne okamžitě) aby neblokoval aktivaci pluginu
+- Po každém `Plugin::run()` se schedule() zavolá – `wp_next_scheduled()` zajistí neduplikování
+
+**Jak ověřit:**
+1. Logy → Diagnostika → "Spustit kontrolu nyní" → uvidíš výsledek
+2. Export logů → stáhne se `smec-diagnostic-YYYY-MM-DD-HHmmss.json`
+3. Logy → typ "Systém" → vidíš záznamy health checků
+
+---
+
 ### 2026-06-08 – GTM modul – JavaScript implementace
 
 **Soubory:** `assets/admin/js/admin.js`  
