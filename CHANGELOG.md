@@ -3,6 +3,24 @@
 Všechny výrazné změny jsou dokumentovány v tomto souboru.
 Formát dle [Keep a Changelog](https://keepachangelog.com/cs/1.0.0/).
 
+## [1.3.0] – 2026-06-16
+
+### Přidáno
+- **Health check cron (24h)** – automatická kontrola všech kritických bodů integrace každých 24 hodin
+  - Testuje: live API ping SmartEmailing, DB tabulky, konfiguraci API, webtracking GUID, kolize pluginů, WP-Cron aktivitu
+  - Při nalezení problému okamžitě odešle notifikaci (e-mail / Slack / webhook) se seznamem problémů
+  - Cooldown 24h – stejný problém se neopakuje v jedné závoze
+  - Widget v Logy → Diagnostika: poslední kontrola, stav, seznam problémů, příští naplánování
+  - Tlačítko „Spustit kontrolu nyní" pro manuální spuštění z admin UI
+- **Export logů (diagnostický soubor)** – tlačítko „⬇ Export logů" na stránce Logy
+  - Stáhne `.json` soubor s: verzemi (WP, PHP, plugin), výsledkem health checku, live diagnostics, posledními 1000 logy s plným context
+  - API klíč není součástí exportu – bezpečné pro sdílení s podporou nebo vývojářem
+- **Klikatelný context v logách** – HTTP kód a endpoint zobrazeny inline, detail rozbalitelný přes `[detail ▾]`
+- **HTTP kód v chybových hláškách API** – při chybě načítání seznamů/polí se zobrazí HTTP kód s nápovědou (401 → neplatný klíč, 404 → špatná URL, 5xx → server error) místo generické chybové hlášky
+
+### Opraveno
+- Chybová hláška při nenačtení seznamů SmartEmailing zobrazovala pouze text bez HTTP kódu – nyní zobrazuje přesný HTTP status a konkrétní instrukce jak opravit
+
 ## [1.2.0] – 2026-06-08
 
 ### Přidáno
