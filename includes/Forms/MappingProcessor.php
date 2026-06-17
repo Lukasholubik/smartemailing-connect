@@ -52,7 +52,13 @@ class SMEC_MappingProcessor {
 		$email = $this->resolve( $mapping['system_fields']['emailaddress'] ?? [], $form_fields, $placeholders );
 		$email = sanitize_email( (string) $email );
 		if ( ! is_email( $email ) ) {
-			$this->logger->error( 'MappingProcessor: invalid or missing email', [ 'mapping_id' => $mapping['id'] ?? '' ], 'forms' );
+			$email_cfg = $mapping['system_fields']['emailaddress'] ?? [];
+			$this->logger->error( 'MappingProcessor: invalid or missing email', [
+				'mapping_id'       => $mapping['id'] ?? '',
+				'email_source'     => $email_cfg['source'] ?? '—',
+				'email_field_key'  => $email_cfg['value']  ?? '—',
+				'received_fields'  => array_keys( $form_fields ),
+			], 'forms' );
 			return null;
 		}
 

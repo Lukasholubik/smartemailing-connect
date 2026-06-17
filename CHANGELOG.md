@@ -3,6 +3,11 @@
 Všechny výrazné změny jsou dokumentovány v tomto souboru.
 Formát dle [Keep a Changelog](https://keepachangelog.com/cs/1.0.0/).
 
+## [1.3.2] – 2026-06-17
+
+### Opraveno
+- **Diagnostika chybějícího emailu** – chybový log nyní obsahuje: nakonfigurovaný zdroj a klíč emailového pole + seznam klíčů polí skutečně přijatých z formuláře; umožňuje okamžitě identifikovat neshodu bez debug módu
+
 ## [1.3.1] – 2026-06-17
 
 ### Opraveno
