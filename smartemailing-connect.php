@@ -33,7 +33,13 @@ if ( file_exists( $smec_updater_file ) ) {
 		'smartemailing-connect'
 	);
 
-	// Používat GitHub Releases – umožňuje rollback na starší verzi
+	// Prodloužení timeout pro GitHub API – výchozí 3 s nestačí
+	add_filter( 'http_request_timeout', static function ( int $timeout, string $url ): int {
+		if ( str_contains( $url, 'github.com' ) || str_contains( $url, 'api.github.com' ) ) {
+			return 15;
+		}
+		return $timeout;
+	}, 10, 2 );
 }
 
 if ( version_compare( PHP_VERSION, '8.0', '<' ) ) {
