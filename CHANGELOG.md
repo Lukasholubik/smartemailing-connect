@@ -3,6 +3,14 @@
 Všechny výrazné změny jsou dokumentovány v tomto souboru.
 Formát dle [Keep a Changelog](https://keepachangelog.com/cs/1.0.0/).
 
+## [1.3.1] – 2026-06-17
+
+### Opraveno
+- **Sloupec "Seznam" zobrazoval "—"** – název kontaktního seznamu se nyní ukládá přímo do mapování jako fallback; sloupec zobrazuje správnou hodnotu i když vyprší API cache
+- **Cache kontaktních listů** – TTL prodloužen z 10 minut na 1 hodinu, méně zbytečných volání API
+- **Elementor Pro formuláře** – přidán fallback `rawValue` při extrakci odeslaných polí (kompatibilita s Elementor Pro 3.x)
+- **Diagnostika odesílání formulářů** – přidán info log "Žádné mapování nenalezeno" a debug log při každém přijatém odesílání; slouží k diagnostice nefunkčního propojení
+
 ## [1.3.0] – 2026-06-16
 
 ### Přidáno
