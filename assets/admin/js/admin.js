@@ -529,6 +529,7 @@
         form_type:            $('#m-form-type').val(),
         form_id:              $('#m-form-id').val(),
         list_id:              parseInt($('#m-list-id').val(), 10) || 0,
+        list_name:            $('#m-list-id option:selected').data('list-name') || '',
         contact_status:       $('#m-contact-status').val(),
         consent_field:        $('#m-consent-field').val(),
         enabled:              $('#m-enabled').is(':checked') ? 1 : 0,

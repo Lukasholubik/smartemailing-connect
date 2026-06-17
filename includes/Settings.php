@@ -404,7 +404,7 @@ class SMEC_Settings {
 	}
 
 	public function set_cached_lists( array $lists ): void {
-		set_transient( 'smec_lists_cache', $lists, 10 * MINUTE_IN_SECONDS );
+		set_transient( 'smec_lists_cache', $lists, HOUR_IN_SECONDS );
 	}
 
 	public function clear_lists_cache(): void {

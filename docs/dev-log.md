@@ -89,6 +89,45 @@ Před každým `git push` automaticky provedu kontrolu:
 
 ## Záznamy
 
+### 2026-06-17 – Fix: seznam vypadává v tabulce + diagnostika odesílání formulářů
+
+**Soubory:**
+- `templates/admin/page-forms.php`
+- `assets/admin/js/admin.js`
+- `includes/Admin/Admin.php` (sanitize_mapping)
+- `includes/Settings.php` (cache TTL)
+- `includes/Forms/FormManager.php` (handle_submission)
+- `includes/Forms/Integrations/ElementorForms.php`
+
+**Co bylo uděláno:**
+
+**Bug 1 – Sloupec "Seznam" zobrazoval "—" (přerušovaně)**
+- Příčina: transient `smec_lists_cache` expiroval každých 10 minut → `$lists` prázdné → sloupec "—"
+- Fix A: Do `sanitize_mapping()` přidáno pole `list_name` (název seznamu uložen přímo v mapování)
+- Fix B: V JS editoru (`collectMappingFromEditor`) se nyní posílá `list_name` z `data-list-name` atributu option elementu
+- Fix C: V šabloně přidán fallback: pokud cache prázdná a `$m['list_name']` není prázdný, zobrazí se uložená hodnota
+- Fix D: TTL cache změněn z 10 minut na 1 hodinu (Settings.php `set_cached_lists`)
+- **Workflow**: Stačí jednou uložit každé mapování přes editor — od té chvíle se list_name uloží a zobrazuje i bez cache
+
+**Bug 2 – Odesílání reálného formuláře nefungovalo (diagnostika)**
+- Příčina není 100% potvrzená, přidány dvě opravy:
+- Fix A: `FormManager::handle_submission()` nyní loguje debug při každém přijatém odesílání (form_type, form_id, klíče polí) a info log pokud se nenajde žádné pasující mapování → zkontroluj Logy → typ "forms"
+- Fix B: `ElementorForms::on_form_submitted()` – přidán fallback `$field['rawValue']` vedle `$field['value']` pro kompatibilitu s Elementor Pro 3.x
+
+**Proč:**
+- Uživatel hlásil: admin test (záložka Test) funguje, ale reálné odeslání Elementor formuláře neprojde
+- Bez logování nebylo možné rozlišit zda: hook nefiruje / form_id nesedí / extrakce polí selhává / email nevyřešen
+
+**Jak ověřit bug formulářů:**
+1. Jdi do WP Admin → SmartEmailing → Nastavení → zapni Debug mód
+2. Odešli Elementor formulář
+3. Jdi do Logy → typ "forms"
+4. Pokud vidíš "Žádné mapování nenalezeno" → form_id v mapování nesedí s Form Name v Elementoru
+5. Pokud vidíš "MappingProcessor: invalid or missing email" → klíč emailového pole nesedí
+6. Pokud nevidíš nic → hook `elementor_pro/forms/new_record` vůbec nefiruje
+
+---
+
 ### 2026-06-16 – 24h Health Check Cron + Export logů (diagnostický soubor)
 
 **Soubory:**

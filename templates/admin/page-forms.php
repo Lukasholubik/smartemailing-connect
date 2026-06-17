@@ -259,6 +259,8 @@ $placeholders = [
         <?php foreach ( $mappings as $m ) :
           $list_name = '—';
           foreach ( $lists as $l ) { if ( (string)($l['id']??'') === (string)($m['list_id']??'') ) { $list_name = $l['name'] ?? $l['publicname'] ?? '—'; break; } }
+          // Fallback: pokud je cache prázdná, použij uložený list_name z mapování
+          if ( $list_name === '—' && ! empty( $m['list_name'] ) ) { $list_name = $m['list_name']; }
         ?>
           <tr data-id="<?php echo esc_attr( $m['id'] ); ?>">
             <td><?php echo esc_html( $m['name'] ?? '—' ); ?></td>
@@ -324,7 +326,7 @@ $placeholders = [
           <select id="m-list-id">
             <option value="">— Vyberte seznam —</option>
             <?php foreach ( $lists as $l ) : ?>
-              <option value="<?php echo esc_attr($l['id']); ?>"><?php echo esc_html($l['name'] ?? $l['publicname'] ?? '—'); ?> (ID: <?php echo esc_html($l['id']); ?>)</option>
+              <option value="<?php echo esc_attr($l['id']); ?>" data-list-name="<?php echo esc_attr($l['name'] ?? $l['publicname'] ?? ''); ?>"><?php echo esc_html($l['name'] ?? $l['publicname'] ?? '—'); ?> (ID: <?php echo esc_html($l['id']); ?>)</option>
             <?php endforeach; ?>
           </select>
           <?php if ( empty($lists) ) : ?><p class="description">Načtěte <a href="<?php echo esc_url(admin_url('admin.php?page=smec-lists')); ?>">seznamy ze SmartEmailingu</a> nejdříve.</p><?php endif; ?>

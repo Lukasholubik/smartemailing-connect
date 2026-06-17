@@ -28,8 +28,9 @@ class SMEC_ElementorForms {
 		$raw    = $record->get( 'fields' );
 		$fields = [];
 		foreach ( $raw as $field ) {
-			$id    = $field['id']    ?? $field['alias'] ?? '';
-			$value = $field['value'] ?? '';
+			$id    = $field['id'] ?? $field['alias'] ?? '';
+			// Elementor Pro 3.x používá 'rawValue' nebo 'value' dle kontextu
+			$value = $field['value'] ?? $field['rawValue'] ?? '';
 			if ( $id !== '' ) {
 				$fields[ $id ] = $value;
 			}

@@ -42,12 +42,29 @@ class SMEC_FormManager {
 	public function handle_submission( string $form_type, string $form_id, array $fields, array $context = [] ): void {
 		$mappings = $this->settings->get_form_mappings();
 
+		$this->logger->debug( 'Form submission received', [
+			'form_type' => $form_type,
+			'form_id'   => $form_id,
+			'fields'    => array_keys( $fields ),
+		], 'forms' );
+
+		$matched = false;
 		foreach ( $mappings as $mapping ) {
 			if ( empty( $mapping['enabled'] ) ) continue;
 			if ( ( $mapping['form_type'] ?? '' ) !== $form_type ) continue;
 			if ( ( $mapping['form_id'] ?? '' ) !== $form_id && ( $mapping['form_id'] ?? '' ) !== '*' ) continue;
 
+			$matched = true;
 			$this->process_mapping( $mapping, $fields, $context );
+		}
+
+		if ( ! $matched ) {
+			$this->logger->info( 'Žádné mapování nenalezeno pro odeslaný formulář', [
+				'form_type'    => $form_type,
+				'form_id'      => $form_id,
+				'total_maps'   => count( $mappings ),
+				'enabled_maps' => count( array_filter( $mappings, fn( $m ) => ! empty( $m['enabled'] ) ) ),
+			], 'forms' );
 		}
 	}
 

@@ -1018,6 +1018,7 @@ class SMEC_Admin {
 			'form_id'              => sanitize_text_field( $data['form_id'] ?? '' ),
 			'enabled'              => ! empty( $data['enabled'] ) ? 1 : 0,
 			'list_id'              => (int) ( $data['list_id'] ?? 0 ),
+			'list_name'            => sanitize_text_field( $data['list_name'] ?? '' ),
 			'contact_status'       => in_array( $data['contact_status'] ?? '', [ 'confirmed', 'unconfirmed' ], true ) ? $data['contact_status'] : 'confirmed',
 			'consent_field'        => sanitize_key( $data['consent_field'] ?? '' ),
 			'system_fields'        => $this->settings->sanitize_field_mapping( $data['system_fields'] ?? [] ),
