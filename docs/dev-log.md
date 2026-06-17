@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-06-17 – v1.3.3 – Fix: list_id přiřazeného seznamu mizí z mapování
+
+### Problém
+Přiřazené kontaktní seznamy (publikum) v propojení formulářů opakovaně "mizely" – sloupec Seznam zobrazoval "—" a formuláře přestaly importovat kontakty do správného seznamu. Uživatel potvrdil, že po ručním přidání seznamu znovu formulář proběhl úspěšně.
+
+### Root cause
+Když vyprší cache listů (WP transient `smec_lists_cache`) a uživatel otevře editor mapování:
+1. PHP template renderuje `<select id="m-list-id">` **bez options** (žádné seznamy v cache)
+2. `openEditor()` zavolá `$('#m-list-id').val('5')` – ale option s `value="5"` neexistuje → select zůstane prázdný
+3. Uložení zavolá `parseInt($('#m-list-id').val(), 10) || 0` → pošle `list_id: 0`
+4. PHP uloží `list_id = 0` → seznam smazán z mapování
+
+### Oprava
+**JS (`assets/admin/js/admin.js`, `openEditor()`):**
+Po nastavení hodnoty selectu zkontrolovat, zda ji select přijal. Pokud ne, vložit placeholder `<option>` se jménem uloženého seznamu (z `mapping.list_name`). Uložení pak vrátí správný `list_id`.
+
+**PHP (`includes/Admin/Admin.php`, `ajax_save_mapping()`):**
+Safety net: pokud přijde `list_id = 0` ale v DB je pro toto mapování uložen nenulový seznam, zachovat původní hodnotu a zapsat `warning` log. Zároveň přibyl `info` log pro každou legální změnu list_id.
+
+### Soubory
+- `assets/admin/js/admin.js` – `openEditor()` placeholder inject
+- `includes/Admin/Admin.php` – `ajax_save_mapping()` safety net + logging
+
+---
+
 ## Workflow spolupráce
 
 ### Git & verzování

@@ -432,7 +432,20 @@
         $('#m-name').val(mapping.name || '');
         $('#m-form-type').val(mapping.form_type || 'elementor');
         $('#m-form-id').val(mapping.form_id || '');
-        $('#m-list-id').val(String(mapping.list_id || ''));
+        var listIdStr = String(mapping.list_id || '');
+        $('#m-list-id').val(listIdStr);
+        // If the select doesn't have a matching option (lists cache expired),
+        // inject a placeholder so the stored value is never silently lost on save.
+        if (mapping.list_id && $('#m-list-id').val() !== listIdStr) {
+            var listName = mapping.list_name || ('Seznam ID ' + mapping.list_id);
+            $('<option>', {
+                value: listIdStr,
+                text:  listName + ' (uloženo – načtěte seznamy pro změnu)',
+                'data-list-name': listName
+            }).prependTo('#m-list-id');
+            $('#m-list-id').val(listIdStr);
+            console.warn('[SMEC] Seznamy nejsou v cache – zobrazen uložený seznam jako fallback pro mapování: ' + mapping.id);
+        }
         $('#m-contact-status').val(mapping.contact_status || 'confirmed');
         $('#m-consent-field').val(mapping.consent_field || '');
         $('#m-enabled').prop('checked', !!mapping.enabled);

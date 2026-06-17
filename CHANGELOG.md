@@ -3,6 +3,14 @@
 Všechny výrazné změny jsou dokumentovány v tomto souboru.
 Formát dle [Keep a Changelog](https://keepachangelog.com/cs/1.0.0/).
 
+## [1.3.3] – 2026-06-17
+
+### Opraveno
+- **list_id přiřazeného seznamu mizí z mapování** – root cause: při vypršení cache listů se editor otevřel s prázdným `<select>` (žádné options), uložení pak zapsalo `list_id = 0` a seznam byl ztracen
+  - **JS fix**: `openEditor()` nyní při otevírání existujícího mapování zkontroluje, zda `<select>` přijal hodnotu `list_id`. Pokud ne (cache prázdná), automaticky vloží placeholder option se jménem uloženého seznamu – uložení tak vždy zachová správný seznam
+  - **PHP safety net**: `ajax_save_mapping()` kontroluje, zda příchozí `list_id = 0` pro mapování, které má v DB nenulový seznam; v takovém případě zachová původní hodnotu a zaloguje varování na úroveň `warning`
+  - **Logy**: přibyl `warning` log při pokusu o přepis nenulového seznamu nulou + `info` log při každé legální změně seznam-ID mapování (sledování přiřazení v záložce Logy → Formuláře)
+
 ## [1.3.2] – 2026-06-17
 
 ### Opraveno

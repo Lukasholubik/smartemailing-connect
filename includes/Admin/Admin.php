@@ -774,8 +774,35 @@ class SMEC_Admin {
 			wp_send_json_error( [ 'message' => 'Chybí data mapování.' ] );
 		}
 
-		$clean = $this->sanitize_mapping( (array) $data );
-		$id    = $this->settings->upsert_mapping( $clean );
+		$clean    = $this->sanitize_mapping( (array) $data );
+		$existing = ! empty( $clean['id'] ) ? $this->settings->get_mapping_by_id( $clean['id'] ) : null;
+
+		// Safety: pokud přijde list_id = 0 ale mapování má uložen nenulový seznam,
+		// zachováme původní hodnotu. list_id se smí změnit pouze na jiný platný seznam,
+		// nikoli na 0 (které vzniká prázdným <select> při vypršení cache).
+		if ( $clean['list_id'] === 0 && $existing && ! empty( $existing['list_id'] ) ) {
+			$this->logger->warning( 'Uložení mapování: přijat list_id=0, zachováváme původní seznam (pravděpodobně vypršela cache)', [
+				'mapping_id'       => $clean['id'],
+				'mapping_name'     => $clean['name'],
+				'preserved_list'   => $existing['list_id'],
+				'preserved_name'   => $existing['list_name'] ?? '',
+			], 'forms' );
+			$clean['list_id']   = $existing['list_id'];
+			$clean['list_name'] = ! empty( $clean['list_name'] ) ? $clean['list_name'] : ( $existing['list_name'] ?? '' );
+		}
+
+		// Log každou změnu list_id pro sledování
+		if ( $existing && (int) ( $existing['list_id'] ?? 0 ) !== $clean['list_id'] ) {
+			$this->logger->info( 'Mapování: seznam přiřazen/změněn', [
+				'mapping_id'   => $clean['id'],
+				'mapping_name' => $clean['name'],
+				'old_list_id'  => $existing['list_id'] ?? 0,
+				'new_list_id'  => $clean['list_id'],
+				'new_list'     => $clean['list_name'],
+			], 'forms' );
+		}
+
+		$id = $this->settings->upsert_mapping( $clean );
 		wp_send_json_success( [ 'message' => 'Mapování uloženo.', 'id' => $id ] );
 	}
 
