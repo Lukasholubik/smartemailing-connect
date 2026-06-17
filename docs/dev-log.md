@@ -5,6 +5,42 @@
 
 ---
 
+## 2026-06-17 – Fix: timeout Plugin Update Checkeru při kontrole nové verze z GitHubu
+
+### Problém
+Na stránce Pluginy se zobrazovala červená chybová hláška:
+> "Could not determine if updates are available for SmartEmailing Connect."
+> cURL error 28: Operation timed out after 3001 milliseconds with 0 bytes received
+
+Plugin Update Checker (PUC v5) se pokoušel připojit na GitHub API pro kontrolu nové verze, ale WordPress HTTP API mu přidělil pouze ~3 sekundový timeout. GitHub API na dotaz nestihl odpovědět → PUC hlásil chybu, nemohl zjistit dostupné aktualizace.
+
+Chyba se projevuje i na produkci kdykoli je GitHub API pomalé nebo zatížené. Na lokálním prostředí (LocalWP) je to ještě výraznější, protože LocalWP má omezenou odchozí síť.
+
+### Příčina
+Výchozí `http_request_timeout` v WordPressu je 5 sekund. Plugin Update Checker tuto hodnotu interně redukuje (v PUC v5 je výchozí `Requests::DEFAULT_TIMEOUT` = 3 sekundy). GitHub API někdy odpovídá za 2–10 sekund → timeout nestačil.
+
+### Oprava
+Přidán filtr `http_request_timeout` přímo v hlavním souboru pluginu, v bloku kde se inicializuje PUC. Filtr zvyšuje timeout na **15 sekund** pouze pro požadavky na `github.com` a `api.github.com`. Ostatní WP HTTP požadavky nejsou ovlivněny.
+
+```php
+add_filter( 'http_request_timeout', static function ( int $timeout, string $url ): int {
+    if ( str_contains( $url, 'github.com' ) || str_contains( $url, 'api.github.com' ) ) {
+        return 15;
+    }
+    return $timeout;
+}, 10, 2 );
+```
+
+### Soubory
+- `smartemailing-connect.php` – filtr přidán do bloku PUC inicializace (řádky 26–37)
+
+### Poznámky
+- Na LocalWP může i 15 sekund občas nestačit (omezená síť), ale na produkci to řeší problém spolehlivě
+- Filtr je aktivní pouze pokud soubor PUC loaderu existuje (je uvnitř `if ( file_exists(...) )` bloku)
+- Commit: `14e7c45` – nepublikováno jako samostatný Release, zahrnuto v main větvi post-v1.3.3
+
+---
+
 ## 2026-06-17 – v1.3.3 – Fix: list_id přiřazeného seznamu mizí z mapování
 
 ### Problém

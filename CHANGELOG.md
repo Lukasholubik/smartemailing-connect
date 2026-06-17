@@ -3,6 +3,11 @@
 Všechny výrazné změny jsou dokumentovány v tomto souboru.
 Formát dle [Keep a Changelog](https://keepachangelog.com/cs/1.0.0/).
 
+## [Unreleased]
+
+### Opraveno
+- **Timeout Plugin Update Checkeru** – PUC při kontrole verze z GitHubu dostával jen ~3 s HTTP timeout; přidán filtr `http_request_timeout` zvyšující limit na 15 s pro `github.com` a `api.github.com`; ostatní WP HTTP požadavky nejsou ovlivněny
+
 ## [1.3.3] – 2026-06-17
 
 ### Opraveno
