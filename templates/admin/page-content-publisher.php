@@ -122,6 +122,15 @@ if ( isset( $_GET['smec-saved'] ) ) {
 						<?php else : ?>
 						<p class="description">0 = odeslat <strong>okamžitě</strong> při publikování.</p>
 						<?php endif; ?>
+
+						<?php if ( function_exists( 'as_schedule_single_action' ) ) : ?>
+						<p class="description" style="color:#2d7738">✓ <strong>Action Scheduler</strong> detekován (WooCommerce) – přesné načasování bez závislosti na návštěvnících.</p>
+						<?php else : ?>
+						<div style="margin-top:8px;padding:10px 14px;background:#fff8e5;border-left:3px solid #996800;border-radius:2px;font-size:12px">
+							⚠ <strong>WP Cron</strong> – potřebuje HTTP request pro spuštění. Pro přesné načasování nastav system cron na serveru:<br>
+							<code style="display:block;margin-top:6px;background:#f6f7f7;padding:4px 8px;border-radius:2px">* * * * * wget -q -O - "<?php echo esc_url( site_url( '/wp-cron.php?doing_wp_cron' ) ); ?>" &gt; /dev/null 2&gt;&amp;1</code>
+						</div>
+						<?php endif; ?>
 					</td>
 				</tr>
 

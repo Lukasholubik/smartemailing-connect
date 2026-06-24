@@ -108,17 +108,34 @@ class SMEC_ContentPublisher {
 			);
 		} else {
 			$fire_at = time() + $delay_min * MINUTE_IN_SECONDS;
-			wp_schedule_single_event( $fire_at, self::CRON_HOOK, [ $post_id ] );
-			$this->logger->info(
-				sprintf(
-					'ContentPublisher: naplánováno za %d min (%s, post ID %d)',
-					$delay_min,
-					wp_date( 'd.m.Y H:i', $fire_at ),
-					$post_id
-				),
-				[],
-				'content-publisher'
-			);
+
+			if ( function_exists( 'as_schedule_single_action' ) ) {
+				// Action Scheduler (součást WooCommerce) – přesné načasování bez závislosti na návštěvnících
+				as_schedule_single_action( $fire_at, self::CRON_HOOK, [ $post_id ], 'smec-publisher' );
+				$this->logger->info(
+					sprintf(
+						'ContentPublisher: naplánováno via Action Scheduler za %d min (%s, post ID %d)',
+						$delay_min,
+						wp_date( 'd.m.Y H:i', $fire_at ),
+						$post_id
+					),
+					[],
+					'content-publisher'
+				);
+			} else {
+				// Fallback: WP Cron (vyžaduje HTTP request pro spuštění)
+				wp_schedule_single_event( $fire_at, self::CRON_HOOK, [ $post_id ] );
+				$this->logger->info(
+					sprintf(
+						'ContentPublisher: naplánováno via WP Cron za %d min (%s, post ID %d) – pro přesné načasování doporuč system cron',
+						$delay_min,
+						wp_date( 'd.m.Y H:i', $fire_at ),
+						$post_id
+					),
+					[],
+					'content-publisher'
+				);
+			}
 		}
 	}
 
