@@ -652,6 +652,8 @@ class SMEC_Settings {
 			'event_name'       => 'new_article_published',
 			'trigger_email'    => '',
 			'contact_list_id'  => 0,
+			'delay_days'       => 0,
+			'delay_hours'      => 0,
 			'delay_minutes'    => 0,
 			'send_title'       => 1,
 			'send_url'         => 1,
@@ -662,6 +664,14 @@ class SMEC_Settings {
 		];
 		$saved = (array) get_option( 'smec_content_publisher', [] );
 		return wp_parse_args( $saved, $defaults );
+	}
+
+	/** Vrátí celkové zpoždění v minutách (dny + hodiny + minuty). */
+	public function get_content_publisher_delay_minutes(): int {
+		$cfg = $this->get_content_publisher();
+		return (int) $cfg['delay_days'] * 1440
+			+ (int) $cfg['delay_hours'] * 60
+			+ (int) $cfg['delay_minutes'];
 	}
 
 	public function save_content_publisher( array $data ): void {
@@ -675,7 +685,9 @@ class SMEC_Settings {
 			'event_name'      => sanitize_key( $data['event_name'] ?? 'new_article_published' ),
 			'trigger_email'   => sanitize_email( $data['trigger_email'] ?? '' ),
 			'contact_list_id' => absint( $data['contact_list_id'] ?? 0 ),
-			'delay_minutes'   => max( 0, absint( $data['delay_minutes'] ?? 0 ) ),
+			'delay_days'      => max( 0, absint( $data['delay_days']    ?? 0 ) ),
+			'delay_hours'     => max( 0, min( 23, absint( $data['delay_hours']   ?? 0 ) ) ),
+			'delay_minutes'   => max( 0, min( 59, absint( $data['delay_minutes'] ?? 0 ) ) ),
 			'send_title'      => ! empty( $data['send_title'] )     ? 1 : 0,
 			'send_url'        => ! empty( $data['send_url'] )       ? 1 : 0,
 			'send_excerpt'    => ! empty( $data['send_excerpt'] )   ? 1 : 0,

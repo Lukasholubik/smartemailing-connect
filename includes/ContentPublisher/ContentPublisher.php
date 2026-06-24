@@ -93,23 +93,29 @@ class SMEC_ContentPublisher {
 		}
 		update_post_meta( $post->ID, self::META_KEY, current_time( 'mysql' ) );
 
-		$delay_min = max( 0, (int) ( $cfg['delay_minutes'] ?? 0 ) );
+		$delay_min = $this->settings->get_content_publisher_delay_minutes();
 		$post_id   = $post->ID;
 
 		if ( $delay_min === 0 ) {
-			// Okamžitě na konci tohoto requestu (shutdown)
+			// Okamžitě na konci tohoto requestu (shutdown hook)
 			add_action( 'shutdown', function () use ( $post_id ) {
 				$this->fire_event( $post_id );
 			} );
 			$this->logger->info(
-				sprintf( 'ContentPublisher: spuštění na konci requestu (post ID %d)', $post_id ),
+				sprintf( 'ContentPublisher: spuštění okamžitě (shutdown, post ID %d)', $post_id ),
 				[],
 				'content-publisher'
 			);
 		} else {
-			wp_schedule_single_event( time() + $delay_min * MINUTE_IN_SECONDS, self::CRON_HOOK, [ $post_id ] );
+			$fire_at = time() + $delay_min * MINUTE_IN_SECONDS;
+			wp_schedule_single_event( $fire_at, self::CRON_HOOK, [ $post_id ] );
 			$this->logger->info(
-				sprintf( 'ContentPublisher: naplánováno za %d min (post ID %d)', $delay_min, $post_id ),
+				sprintf(
+					'ContentPublisher: naplánováno za %d min (%s, post ID %d)',
+					$delay_min,
+					wp_date( 'd.m.Y H:i', $fire_at ),
+					$post_id
+				),
 				[],
 				'content-publisher'
 			);

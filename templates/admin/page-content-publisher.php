@@ -85,12 +85,43 @@ if ( isset( $_GET['smec-saved'] ) ) {
 				</tr>
 
 				<tr>
-					<th scope="row">Zpoždění odeslání (minuty)</th>
+					<th scope="row">Zpoždění odeslání</th>
 					<td>
-						<input type="number" name="delay_minutes" min="0" max="1440"
-							value="<?php echo esc_attr( $cfg['delay_minutes'] ); ?>"
-							style="width:80px">
-						<span class="description">&nbsp;0 = okamžitě po publikování (přes cron)</span>
+						<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+							<label style="display:flex;align-items:center;gap:4px">
+								<input type="number" name="delay_days" min="0" max="30"
+									value="<?php echo esc_attr( $cfg['delay_days'] ?? 0 ); ?>"
+									style="width:60px">
+								<span>dní</span>
+							</label>
+							<label style="display:flex;align-items:center;gap:4px">
+								<input type="number" name="delay_hours" min="0" max="23"
+									value="<?php echo esc_attr( $cfg['delay_hours'] ?? 0 ); ?>"
+									style="width:55px">
+								<span>hodin</span>
+							</label>
+							<label style="display:flex;align-items:center;gap:4px">
+								<input type="number" name="delay_minutes" min="0" max="59"
+									value="<?php echo esc_attr( $cfg['delay_minutes'] ?? 0 ); ?>"
+									style="width:55px">
+								<span>minut</span>
+							</label>
+						</div>
+						<?php
+						$total = $settings->get_content_publisher_delay_minutes();
+						if ( $total > 0 ) :
+							$d = floor( $total / 1440 );
+							$h = floor( ( $total % 1440 ) / 60 );
+							$m = $total % 60;
+							$parts = [];
+							if ( $d ) $parts[] = $d . ' dní';
+							if ( $h ) $parts[] = $h . ' hodin';
+							if ( $m ) $parts[] = $m . ' minut';
+						?>
+						<p class="description">Celkem: <strong><?php echo esc_html( implode( ' ', $parts ) ); ?></strong> po publikování (přes WP Cron).</p>
+						<?php else : ?>
+						<p class="description">0 = odeslat <strong>okamžitě</strong> při publikování.</p>
+						<?php endif; ?>
 					</td>
 				</tr>
 
