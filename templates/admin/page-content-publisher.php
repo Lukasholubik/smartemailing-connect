@@ -126,9 +126,16 @@ if ( isset( $_GET['smec-saved'] ) ) {
 						<?php if ( function_exists( 'as_schedule_single_action' ) ) : ?>
 						<p class="description" style="color:#2d7738">✓ <strong>Action Scheduler</strong> detekován (WooCommerce) – přesné načasování bez závislosti na návštěvnících.</p>
 						<?php else : ?>
-						<div style="margin-top:8px;padding:10px 14px;background:#fff8e5;border-left:3px solid #996800;border-radius:2px;font-size:12px">
-							⚠ <strong>WP Cron</strong> – potřebuje HTTP request pro spuštění. Pro přesné načasování nastav system cron na serveru:<br>
-							<code style="display:block;margin-top:6px;background:#f6f7f7;padding:4px 8px;border-radius:2px">* * * * * wget -q -O - "<?php echo esc_url( site_url( '/wp-cron.php?doing_wp_cron' ) ); ?>" &gt; /dev/null 2&gt;&amp;1</code>
+						<div style="margin-top:10px;padding:14px 16px;background:#fff8e5;border-left:3px solid #996800;border-radius:4px;font-size:13px">
+							<strong>⚠ WP Cron potřebuje "bota"</strong> – sám se nespustí bez návštěvy webu.<br>
+							<strong>Nejrychlejší řešení (zdarma, 2 minuty):</strong>
+							<ol style="margin:8px 0 0 16px;padding:0;line-height:1.9">
+								<li>Otevři <a href="https://cron-job.org" target="_blank" rel="noopener">cron-job.org</a> a zaregistruj se</li>
+								<li>Přidej nový cronjob – URL: <code style="background:#f6f7f7;padding:2px 6px;border-radius:2px"><?php echo esc_url( site_url( '/wp-cron.php?doing_wp_cron' ) ); ?></code></li>
+								<li>Interval: <strong>každou minutu</strong></li>
+								<li>Uložit → hotovo</li>
+							</ol>
+							<p style="margin:8px 0 0;color:#50575e">Nebo přes SSH/cPanel: <code style="background:#f6f7f7;padding:2px 6px;border-radius:2px">* * * * * wget -q -O - "<?php echo esc_url( site_url( '/wp-cron.php?doing_wp_cron' ) ); ?>" &gt; /dev/null 2&gt;&amp;1</code></p>
 						</div>
 						<?php endif; ?>
 					</td>
