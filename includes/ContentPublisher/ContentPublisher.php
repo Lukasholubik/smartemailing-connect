@@ -107,12 +107,14 @@ class SMEC_ContentPublisher {
 			} );
 			$this->logger->info(
 				sprintf( 'ContentPublisher: spuštění na konci requestu (post ID %d)', $post_id ),
+				[],
 				'content-publisher'
 			);
 		} else {
 			wp_schedule_single_event( time() + $delay_min * MINUTE_IN_SECONDS, self::CRON_HOOK, [ $post_id ] );
 			$this->logger->info(
 				sprintf( 'ContentPublisher: naplánováno za %d min (post ID %d)', $delay_min, $post_id ),
+				[],
 				'content-publisher'
 			);
 		}
@@ -128,6 +130,7 @@ class SMEC_ContentPublisher {
 		if ( ! $post || $post->post_status !== 'publish' ) {
 			$this->logger->warning(
 				sprintf( 'ContentPublisher: post ID %d neexistuje nebo není publish – přeskočeno.', $post_id ),
+				[],
 				'content-publisher'
 			);
 			return;
@@ -142,7 +145,7 @@ class SMEC_ContentPublisher {
 		$contact_list_id = (int) ( $cfg['contact_list_id'] ?? 0 );
 
 		if ( ! is_email( $trigger_email ) && $contact_list_id <= 0 ) {
-			$this->logger->error( 'ContentPublisher: není nastaven trigger email ani seznam kontaktů.', 'content-publisher' );
+			$this->logger->error( 'ContentPublisher: není nastaven trigger email ani seznam kontaktů.', [], 'content-publisher' );
 			return;
 		}
 
@@ -164,6 +167,7 @@ class SMEC_ContentPublisher {
 				} else {
 					$this->logger->warning(
 						'ContentPublisher: nepodařilo se načíst kontakty ze seznamu ' . $contact_list_id . ': ' . ( $list_result['error'] ?? '' ),
+						[],
 						'content-publisher'
 					);
 					break;
@@ -172,7 +176,7 @@ class SMEC_ContentPublisher {
 		}
 
 		if ( empty( $emails ) ) {
-			$this->logger->error( 'ContentPublisher: žádní příjemci – event nebyl odeslán.', 'content-publisher' );
+			$this->logger->error( 'ContentPublisher: žádní příjemci – event nebyl odeslán.', [], 'content-publisher' );
 			return;
 		}
 
@@ -181,6 +185,7 @@ class SMEC_ContentPublisher {
 		if ( $result['success'] ) {
 			$this->logger->info(
 				sprintf( 'ContentPublisher: event "%s" úspěšně odeslán pro post ID %d ("%s").', $event_name, $post_id, $post->post_title ),
+				[],
 				'content-publisher'
 			);
 		} else {
@@ -192,6 +197,7 @@ class SMEC_ContentPublisher {
 					$result['error'] ?? 'neznámá chyba',
 					$result['code'] ?? '?'
 				),
+				[],
 				'content-publisher'
 			);
 			// Smazat meta flag aby bylo možné zkusit znovu (např. ruční resend)
