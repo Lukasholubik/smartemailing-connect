@@ -52,13 +52,9 @@ class SMEC_ContentPublisher {
 
 	/**
 	 * Hook wp_after_insert_post – spolehlivý pro Gutenberg REST API.
-	 * Fires po uložení postu včetně REST API requestů.
-	 *
-	 * @param WP_Post      $post
-	 * @param bool         $update    true pokud update, false pokud nový
-	 * @param WP_Post|null $post_before stav před uložením
+	 * Signatura: ( int $post_id, WP_Post $post, bool $update, WP_Post|null $post_before )
 	 */
-	public function on_after_insert_post( WP_Post $post, bool $update, ?WP_Post $post_before ): void {
+	public function on_after_insert_post( int $post_id, WP_Post $post, bool $update, ?WP_Post $post_before ): void {
 		if ( $post->post_status !== 'publish' ) {
 			return;
 		}
