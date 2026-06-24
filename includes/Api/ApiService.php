@@ -198,33 +198,36 @@ class SMEC_ApiService {
 	// ── Content Publisher – automation event trigger ──────────────────────────
 
 	/**
-	 * Vyvolá custom automation event v SE pro jeden trigger kontakt.
+	 * Vyvolá custom automation event v SE.
 	 *
-	 * WP jen oznámí SE "stala se událost X s těmito daty".
-	 * SE automatizace sama rozhodne na koho a jak to rozešle
-	 * (seznam enrollovaných kontaktů řídí SE, ne WP).
+	 * Správný endpoint dle SE OpenAPI dokumentace:
+	 *   POST /api/v3/trigger-event
 	 *
-	 * Endpoint: POST /v3/contacts/{emailaddress}/automation-event-trigger
+	 * Body: pole eventů [ { emailaddress, name, payload } ]
+	 * Max 500 eventů na request.
+	 * Data jsou v SE šabloně dostupná přes {{ metadata.event.attributes.klic }}.
 	 *
-	 * @param  string  $event_name     Název custom eventu (shodný s triggerem v SE automatizaci)
-	 * @param  array   $event_data     Datový payload – proměnné dostupné v SE šabloně
-	 * @param  string  $trigger_email  Email kontaktu který spustí event (tvůj vlastní nebo dedikovaný trigger)
+	 * Pokud emailaddress v SE neexistuje, SE ho automaticky vytvoří.
+	 *
+	 * @param  string  $event_name     Název eventu (musí odpovídat triggeru "Vlastní událost" v SE automatizaci)
+	 * @param  array   $event_data     Payload – dostupný v SE šabloně přes {{ metadata.event.attributes }}
+	 * @param  string  $trigger_email  Email pro spuštění eventu (tvůj nebo dedikovaný trigger kontakt)
 	 */
 	public function trigger_automation_event( string $event_name, array $event_data, string $trigger_email ): array {
 		if ( empty( $event_name ) || ! is_email( $trigger_email ) ) {
 			return [ 'success' => false, 'error' => 'Chybí event_name nebo platný trigger email.' ];
 		}
 
+		// SE /trigger-event přijímá pole eventů
 		$payload = [
-			'event_name' => $event_name,
-			'payload'    => $event_data,
+			[
+				'emailaddress' => $trigger_email,
+				'name'         => $event_name,
+				'payload'      => $event_data,
+			],
 		];
 
-		$result = $this->request(
-			'POST',
-			'contacts/' . rawurlencode( $trigger_email ) . '/automation-event-trigger',
-			$payload
-		);
+		$result = $this->request( 'POST', 'trigger-event', $payload );
 
 		if ( ! $result['success'] ) {
 			return [

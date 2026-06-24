@@ -135,8 +135,9 @@ if ( isset( $_GET['smec-saved'] ) ) {
 		<div style="background:#fff;border:1px solid #dcdcde;border-radius:4px;padding:20px 24px;max-width:720px;margin-bottom:24px">
 			<h2 style="margin-top:0">Data odesílaná do SE (proměnné v šabloně)</h2>
 			<p style="color:#50575e;margin-top:0">
-				Zaškrtnuté hodnoty budou dostupné jako proměnné v SE emailové šabloně pod jmény v závorce.
-				Vždy se odesílá: <code>post_id</code>, <code>post_type</code>, <code>post_date</code>, <code>post_date_formatted</code>.
+				Zaškrtnuté hodnoty budou dostupné v SE emailové šabloně přes:<br>
+				<code>{{ metadata.event.attributes.post_title }}</code>, <code>{{ metadata.event.attributes.post_url }}</code> atd.<br>
+				Nebo celé: <code>{{ metadata.event.attributes | json_encode(128) }}</code>
 			</p>
 			<table class="form-table" role="presentation">
 
