@@ -27,25 +27,52 @@ class SMEC_ContentPublisher {
 	}
 
 	public function register(): void {
+		// Klasický hook – funguje pro standardní WP publish
 		add_action( 'transition_post_status', [ $this, 'on_status_change' ], 10, 3 );
+		// Záložní hook – funguje pro Gutenberg REST API publish
+		add_action( 'wp_after_insert_post', [ $this, 'on_after_insert_post' ], 10, 4 );
 		add_action( self::CRON_HOOK, [ $this, 'fire_event' ] );
 	}
 
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Zachytí přechod na publish a naplánuje cron (nebo spustí okamžitě).
-	 *
-	 * @param string  $new_status
-	 * @param string  $old_status
-	 * @param WP_Post $post
+	 * Hook transition_post_status – pro klasický WP publish.
 	 */
 	public function on_status_change( string $new_status, string $old_status, WP_Post $post ): void {
-		// Zajímá nás pouze přechod NA publish (ne update už publikovaného)
-		if ( $new_status !== 'publish' || $old_status === 'publish' ) {
+		if ( $new_status !== 'publish' ) {
 			return;
 		}
+		// Přeskočit pokud byl post ALREADY published (update existujícího) – zachytí to on_after_insert_post
+		if ( $old_status === 'publish' ) {
+			return;
+		}
+		$this->maybe_schedule( $post );
+	}
 
+	/**
+	 * Hook wp_after_insert_post – spolehlivý pro Gutenberg REST API.
+	 * Fires po uložení postu včetně REST API requestů.
+	 *
+	 * @param WP_Post      $post
+	 * @param bool         $update    true pokud update, false pokud nový
+	 * @param WP_Post|null $post_before stav před uložením
+	 */
+	public function on_after_insert_post( WP_Post $post, bool $update, ?WP_Post $post_before ): void {
+		if ( $post->post_status !== 'publish' ) {
+			return;
+		}
+		// Zajímá nás jen přechod z NEPUBLIKOVANÉHO na publish
+		if ( $post_before && $post_before->post_status === 'publish' ) {
+			return;
+		}
+		$this->maybe_schedule( $post );
+	}
+
+	/**
+	 * Společná logika: ověří podmínky a naplánuje odeslání eventu.
+	 */
+	private function maybe_schedule( WP_Post $post ): void {
 		$cfg = $this->settings->get_content_publisher();
 		if ( empty( $cfg['enabled'] ) ) {
 			return;
@@ -56,7 +83,7 @@ class SMEC_ContentPublisher {
 			return;
 		}
 
-		// Volitelný filtr kategorií (jen pro 'post', jiné CPT nemají taxonomy 'category')
+		// Volitelný filtr kategorií
 		if ( ! empty( $cfg['categories'] ) && $post->post_type === 'post' ) {
 			$post_cats = wp_get_post_categories( $post->ID, [ 'fields' => 'ids' ] );
 			if ( empty( array_intersect( $cfg['categories'], $post_cats ) ) ) {
@@ -64,34 +91,28 @@ class SMEC_ContentPublisher {
 			}
 		}
 
-		// Neodesílat duplicitně (např. při save_post spuštěném vícekrát)
+		// Ochrana proti duplicitnímu odeslání
 		if ( get_post_meta( $post->ID, self::META_KEY, true ) ) {
 			return;
 		}
-
-		// Označit aby se neodesílalo znovu
 		update_post_meta( $post->ID, self::META_KEY, current_time( 'mysql' ) );
 
 		$delay_min = max( 0, (int) ( $cfg['delay_minutes'] ?? 0 ) );
+		$post_id   = $post->ID;
 
 		if ( $delay_min === 0 ) {
-			// Spustit okamžitě na konci tohoto requestu – spolehlivější než čekat na WP Cron
-			$post_id = $post->ID;
+			// Okamžitě na konci tohoto requestu (shutdown)
 			add_action( 'shutdown', function () use ( $post_id ) {
 				$this->fire_event( $post_id );
 			} );
 			$this->logger->info(
-				sprintf( 'ContentPublisher: spustí se při shutdown tohoto requestu (post ID %d)', $post_id ),
+				sprintf( 'ContentPublisher: spuštění na konci requestu (post ID %d)', $post_id ),
 				'content-publisher'
 			);
 		} else {
-			wp_schedule_single_event(
-				time() + $delay_min * MINUTE_IN_SECONDS,
-				self::CRON_HOOK,
-				[ $post->ID ]
-			);
+			wp_schedule_single_event( time() + $delay_min * MINUTE_IN_SECONDS, self::CRON_HOOK, [ $post_id ] );
 			$this->logger->info(
-				sprintf( 'ContentPublisher: naplánováno přes WP Cron za %d min (post ID %d)', $delay_min, $post->ID ),
+				sprintf( 'ContentPublisher: naplánováno za %d min (post ID %d)', $delay_min, $post_id ),
 				'content-publisher'
 			);
 		}

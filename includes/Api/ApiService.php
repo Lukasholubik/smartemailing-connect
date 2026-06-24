@@ -265,17 +265,18 @@ class SMEC_ApiService {
 
 	/**
 	 * Načte emailové adresy kontaktů ze SE seznamu.
+	 * Správný endpoint: GET /contactlists/{id}/contacts
 	 */
 	public function get_emails_from_list( int $contact_list_id, int $limit = 500, int $offset = 0 ): array {
-		$result = $this->request( 'GET', 'contacts', [], [
-			'select'         => 'emailaddress',
-			'contactlist_id' => $contact_list_id,
-			'limit'          => $limit,
-			'offset'         => $offset,
-		] );
+		$result = $this->request(
+			'GET',
+			"contactlists/{$contact_list_id}/contacts",
+			[],
+			[ 'limit' => $limit, 'offset' => $offset ]
+		);
 
 		if ( ! $result['success'] ) {
-			return [ 'success' => false, 'emails' => [], 'error' => $result['error'] ?? 'Chyba.' ];
+			return [ 'success' => false, 'emails' => [], 'error' => $result['error'] ?? 'Chyba načítání kontaktů.' ];
 		}
 
 		$data   = $result['body']['data'] ?? [];
