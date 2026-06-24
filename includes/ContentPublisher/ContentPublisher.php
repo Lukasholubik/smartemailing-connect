@@ -106,16 +106,16 @@ class SMEC_ContentPublisher {
 			return;
 		}
 
-		$list_id = (int) ( $cfg['contact_list_id'] ?? 0 );
-		if ( $list_id <= 0 ) {
-			$this->logger->error( 'ContentPublisher: není nastaven kontaktní seznam SE – událost nelze odeslat.', 'content-publisher' );
+		$trigger_email = sanitize_email( $cfg['trigger_email'] ?? '' );
+		if ( ! is_email( $trigger_email ) ) {
+			$this->logger->error( 'ContentPublisher: není nastaven trigger email – událost nelze odeslat.', 'content-publisher' );
 			return;
 		}
 
 		$event_name = sanitize_key( $cfg['event_name'] ?? 'new_article_published' );
 		$event_data = $this->build_event_data( $post, $cfg );
 
-		$result = $this->api->trigger_automation_event( $event_name, $event_data, $list_id );
+		$result = $this->api->trigger_automation_event( $event_name, $event_data, $trigger_email );
 
 		if ( $result['success'] ) {
 			$this->logger->info(

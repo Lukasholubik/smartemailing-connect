@@ -116,28 +116,15 @@ if ( isset( $_GET['smec-saved'] ) ) {
 				</tr>
 
 				<tr>
-					<th scope="row">Cílový seznam kontaktů</th>
+					<th scope="row">Trigger email</th>
 					<td>
-						<?php if ( $se_lists ) : ?>
-						<select name="contact_list_id" style="min-width:280px">
-							<option value="">— vyberte seznam —</option>
-							<?php foreach ( $se_lists as $list ) :
-								$lid   = (int) ( $list['id'] ?? 0 );
-								$lname = esc_html( $list['name'] ?? 'Seznam ' . $lid );
-							?>
-							<option value="<?php echo esc_attr( $lid ); ?>"
-								<?php selected( (int) $cfg['contact_list_id'], $lid ); ?>>
-								<?php echo $lname; ?> (ID: <?php echo esc_html( $lid ); ?>)
-							</option>
-							<?php endforeach; ?>
-						</select>
-						<?php else : ?>
-						<input type="number" name="contact_list_id" min="1"
-							value="<?php echo esc_attr( $cfg['contact_list_id'] ); ?>"
-							style="width:100px"
-							placeholder="ID seznamu">
-						<p class="description">Seznamy nenačteny – zadej ID ručně nebo <a href="<?php echo esc_url( admin_url( 'admin.php?page=smec-lists' ) ); ?>">načti seznamy</a>.</p>
-						<?php endif; ?>
+						<input type="email" name="trigger_email" class="regular-text"
+							value="<?php echo esc_attr( $cfg['trigger_email'] ); ?>"
+							placeholder="tvuj@email.cz">
+						<p class="description">
+							Email kontaktu v SE který "spustí" event. Stačí jeden (tvůj vlastní nebo dedikovaný trigger kontakt).<br>
+							<strong>SE automatizace sama rozhodne na koho a jak rozešle</strong> – WP jen pošle signál s daty článku.
+						</p>
 					</td>
 				</tr>
 
@@ -196,7 +183,7 @@ if ( isset( $_GET['smec-saved'] ) ) {
 			<li>Název eventu nastav přesně na: <code><?php echo esc_html( $cfg['event_name'] ?: 'new_article_published' ); ?></code></li>
 			<li>V obsahu automatizace přidej akci <strong>Odeslat email</strong></li>
 			<li>V emailové šabloně použij proměnné jako <code>{post_title}</code>, <code>{post_url}</code> atd.</li>
-			<li>Automatizaci nastav na seznam: <strong><?php echo esc_html( $cfg['contact_list_id'] ?: '— nevybráno —' ); ?></strong></li>
+			<li>Trigger email v nastavení výše: <strong><?php echo esc_html( $cfg['trigger_email'] ?: '— nevyplněno —' ); ?></strong> – musí existovat jako kontakt v SE</li>
 		</ol>
 	</div>
 
