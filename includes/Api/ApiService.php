@@ -198,38 +198,50 @@ class SMEC_ApiService {
 	// ── Content Publisher – automation event trigger ──────────────────────────
 
 	/**
-	 * Načte emailové adresy kontaktů ze SE seznamu (se stránkováním).
+	 * Načte emailové adresy kontaktů ze SE seznamu.
+	 * Endpoint: GET /v3/contacts?select=emailaddress&contactlist_id={id}
 	 *
 	 * @return array{success: bool, emails: string[], error?: string}
 	 */
 	public function get_emails_from_list( int $contact_list_id, int $limit = 500, int $offset = 0 ): array {
 		$result = $this->request(
 			'GET',
-			"contactlists/{$contact_list_id}/contacts",
+			'contacts',
 			[],
-			[ 'limit' => $limit, 'offset' => $offset, 'select' => 'emailaddress' ]
+			[
+				'select'          => 'emailaddress',
+				'contactlist_id'  => $contact_list_id,
+				'limit'           => $limit,
+				'offset'          => $offset,
+			]
 		);
 
 		if ( ! $result['success'] ) {
-			return [ 'success' => false, 'emails' => [], 'error' => $result['error'] ?? 'Chyba načítání kontaktů.' ];
+			return [ 'success' => false, 'emails' => [], 'error' => $result['error'] ?? 'Chyba načítání kontaktů ze seznamu.' ];
 		}
 
 		$data   = $result['body']['data'] ?? [];
 		$emails = array_values( array_filter( array_column( $data, 'emailaddress' ) ) );
 
-		return [ 'success' => true, 'emails' => $emails, 'total' => $result['body']['total_count'] ?? count( $emails ) ];
+		return [
+			'success' => true,
+			'emails'  => $emails,
+			'total'   => (int) ( $result['body']['total_count'] ?? count( $emails ) ),
+		];
 	}
 
 	/**
-	 * Vyvolá custom automation event pro kontakty v daném seznamu.
+	 * Vyvolá custom automation event pro všechny kontakty v daném seznamu.
 	 *
-	 * SE endpoint bulk-automation-event-trigger vyžaduje seznam emailaddress (ne list ID).
-	 * Proto se nejdřív načtou kontakty ze seznamu a pak se odešle bulk trigger.
+	 * Používá per-contact endpoint (garantovaně dokumentovaný v SE API v3):
+	 *   POST /v3/contacts/{emailaddress}/automation-event-trigger
 	 *
-	 * Endpoint: POST /api/v3/contacts/bulk-automation-event-trigger
+	 * Workflow:
+	 *  1. Načtou se emailové adresy ze SE seznamu.
+	 *  2. Pro každý kontakt se pošle samostatný API request s event_name a payload.
 	 *
-	 * @param  string  $event_name      Název custom eventu (shodný s nastavením v SE)
-	 * @param  array   $event_data      Datový payload – proměnné dostupné v SE šabloně
+	 * @param  string  $event_name      Název custom eventu (shodný s triggerem v SE automatizaci)
+	 * @param  array   $event_data      Datový payload – proměnné v SE šabloně
 	 * @param  int     $contact_list_id ID kontaktního seznamu v SE
 	 */
 	public function trigger_automation_event( string $event_name, array $event_data, int $contact_list_id ): array {
@@ -237,7 +249,7 @@ class SMEC_ApiService {
 			return [ 'success' => false, 'error' => 'Chybí event_name nebo contact_list_id.' ];
 		}
 
-		// Načti kontakty ze seznamu (max 500 na dávku, opakovat pokud jich je více)
+		// 1. Načti emailové adresy ze seznamu (stránkováno po 500)
 		$all_emails  = [];
 		$offset      = 0;
 		$batch_limit = 500;
@@ -245,7 +257,10 @@ class SMEC_ApiService {
 		do {
 			$list_result = $this->get_emails_from_list( $contact_list_id, $batch_limit, $offset );
 			if ( ! $list_result['success'] ) {
-				return [ 'success' => false, 'error' => 'Nepodařilo se načíst kontakty ze seznamu: ' . ( $list_result['error'] ?? '' ) ];
+				return [
+					'success' => false,
+					'error'   => 'Nepodařilo se načíst kontakty ze seznamu ID ' . $contact_list_id . ': ' . ( $list_result['error'] ?? '' ),
+				];
 			}
 			$all_emails = array_merge( $all_emails, $list_result['emails'] );
 			$offset    += $batch_limit;
@@ -253,32 +268,47 @@ class SMEC_ApiService {
 		} while ( $has_more && count( $all_emails ) < 5000 );
 
 		if ( empty( $all_emails ) ) {
-			return [ 'success' => false, 'error' => 'Seznam kontaktů (ID ' . $contact_list_id . ') je prázdný.' ];
+			return [ 'success' => false, 'error' => 'Seznam kontaktů ID ' . $contact_list_id . ' neobsahuje žádné kontakty.' ];
 		}
 
-		// Odeslat bulk automation event trigger s emailovými adresami
-		$contacts = array_map( static fn( string $email ) => [ 'emailaddress' => $email ], $all_emails );
+		// 2. Odeslat per-contact automation event trigger
+		// Endpoint: POST /v3/contacts/{emailaddress}/automation-event-trigger
+		$ok     = 0;
+		$failed = 0;
+		$last_error = '';
 
-		$payload = [
-			'event_name' => $event_name,
-			'contacts'   => $contacts,
-			'data'       => $event_data,
-		];
+		foreach ( $all_emails as $email ) {
+			$payload = [
+				'event_name' => $event_name,
+				'payload'    => $event_data,
+			];
 
-		$result = $this->request( 'POST', 'contacts/bulk-automation-event-trigger', $payload );
+			$result = $this->request(
+				'POST',
+				'contacts/' . rawurlencode( $email ) . '/automation-event-trigger',
+				$payload
+			);
 
-		if ( ! $result['success'] ) {
+			if ( $result['success'] ) {
+				$ok++;
+			} else {
+				$failed++;
+				$last_error = $result['error'] ?? 'Neznámá chyba.';
+			}
+		}
+
+		if ( $ok === 0 ) {
 			return [
 				'success' => false,
-				'error'   => $result['error'] ?? 'Neznámá chyba SE API.',
-				'code'    => $result['code'] ?? 0,
+				'error'   => 'Všechny triggery selhaly. Poslední chyba: ' . $last_error,
 			];
 		}
 
 		return [
-			'success'         => true,
-			'contacts_count'  => count( $all_emails ),
-			'data'            => $result['body'] ?? [],
+			'success'        => true,
+			'contacts_count' => count( $all_emails ),
+			'ok'             => $ok,
+			'failed'         => $failed,
 		];
 	}
 }
