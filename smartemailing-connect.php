@@ -71,6 +71,7 @@ $smec_files = [
 	'includes/ReadingTime/ReadingTime.php',
 	'includes/GTM/GTM.php',
 	'includes/HealthCheck/HealthCheck.php',
+	'includes/ContentPublisher/ContentPublisher.php',
 	'includes/Admin/Admin.php',
 	'includes/Activator.php',
 	'includes/Plugin.php',
