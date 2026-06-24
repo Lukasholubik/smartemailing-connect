@@ -72,18 +72,29 @@ class SMEC_ContentPublisher {
 		// Označit aby se neodesílalo znovu
 		update_post_meta( $post->ID, self::META_KEY, current_time( 'mysql' ) );
 
-		$delay = max( 0, (int) ( $cfg['delay_minutes'] ?? 0 ) ) * MINUTE_IN_SECONDS;
+		$delay_min = max( 0, (int) ( $cfg['delay_minutes'] ?? 0 ) );
 
-		wp_schedule_single_event(
-			time() + $delay,
-			self::CRON_HOOK,
-			[ $post->ID ]
-		);
-
-		$this->logger->info(
-			sprintf( 'ContentPublisher: naplánováno odeslání pro post ID %d (delay: %d min)', $post->ID, $delay / 60 ),
-			'content-publisher'
-		);
+		if ( $delay_min === 0 ) {
+			// Spustit okamžitě na konci tohoto requestu – spolehlivější než čekat na WP Cron
+			$post_id = $post->ID;
+			add_action( 'shutdown', function () use ( $post_id ) {
+				$this->fire_event( $post_id );
+			} );
+			$this->logger->info(
+				sprintf( 'ContentPublisher: spustí se při shutdown tohoto requestu (post ID %d)', $post_id ),
+				'content-publisher'
+			);
+		} else {
+			wp_schedule_single_event(
+				time() + $delay_min * MINUTE_IN_SECONDS,
+				self::CRON_HOOK,
+				[ $post->ID ]
+			);
+			$this->logger->info(
+				sprintf( 'ContentPublisher: naplánováno přes WP Cron za %d min (post ID %d)', $delay_min, $post->ID ),
+				'content-publisher'
+			);
+		}
 	}
 
 	/**
@@ -106,16 +117,45 @@ class SMEC_ContentPublisher {
 			return;
 		}
 
-		$trigger_email = sanitize_email( $cfg['trigger_email'] ?? '' );
-		if ( ! is_email( $trigger_email ) ) {
-			$this->logger->error( 'ContentPublisher: není nastaven trigger email – událost nelze odeslat.', 'content-publisher' );
+		$trigger_email   = sanitize_email( $cfg['trigger_email'] ?? '' );
+		$contact_list_id = (int) ( $cfg['contact_list_id'] ?? 0 );
+
+		if ( ! is_email( $trigger_email ) && $contact_list_id <= 0 ) {
+			$this->logger->error( 'ContentPublisher: není nastaven trigger email ani seznam kontaktů.', 'content-publisher' );
 			return;
 		}
 
 		$event_name = sanitize_key( $cfg['event_name'] ?? 'new_article_published' );
 		$event_data = $this->build_event_data( $post, $cfg );
 
-		$result = $this->api->trigger_automation_event( $event_name, $event_data, $trigger_email );
+		// Sestavit seznam příjemců
+		$emails = is_email( $trigger_email ) ? [ $trigger_email ] : [];
+
+		// Pokud je zadán seznam kontaktů, načíst z SE a sloučit
+		if ( $contact_list_id > 0 ) {
+			$offset = 0;
+			do {
+				$list_result = $this->api->get_emails_from_list( $contact_list_id, 500, $offset );
+				if ( $list_result['success'] ) {
+					$emails = array_unique( array_merge( $emails, $list_result['emails'] ) );
+					$offset += 500;
+					$has_more = count( $list_result['emails'] ) === 500;
+				} else {
+					$this->logger->warning(
+						'ContentPublisher: nepodařilo se načíst kontakty ze seznamu ' . $contact_list_id . ': ' . ( $list_result['error'] ?? '' ),
+						'content-publisher'
+					);
+					break;
+				}
+			} while ( $has_more ?? false );
+		}
+
+		if ( empty( $emails ) ) {
+			$this->logger->error( 'ContentPublisher: žádní příjemci – event nebyl odeslán.', 'content-publisher' );
+			return;
+		}
+
+		$result = $this->api->send_trigger_events( $event_name, $event_data, $emails );
 
 		if ( $result['success'] ) {
 			$this->logger->info(

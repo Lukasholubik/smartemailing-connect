@@ -218,25 +218,69 @@ class SMEC_ApiService {
 			return [ 'success' => false, 'error' => 'Chybí event_name nebo platný trigger email.' ];
 		}
 
-		// SE /trigger-event přijímá pole eventů
-		$payload = [
-			[
-				'emailaddress' => $trigger_email,
+		// SE /trigger-event přijímá pole emailů, max 500 per request
+		// Sestavit seznam příjemců: vždy alespoň trigger_email, volitelně celý seznam
+		$emails = array_unique( array_filter( [ $trigger_email ] ) );
+
+		return $this->send_trigger_events( $event_name, $event_data, $emails );
+	}
+
+	/**
+	 * Odešle /trigger-event pro pole emailů (max 500 per request, dávkuje automaticky).
+	 *
+	 * @param  string   $event_name
+	 * @param  array    $event_data
+	 * @param  string[] $emails
+	 */
+	public function send_trigger_events( string $event_name, array $event_data, array $emails ): array {
+		$emails  = array_values( array_unique( array_filter( $emails ) ) );
+		$batches = array_chunk( $emails, 500 );
+		$ok      = 0;
+		$failed  = 0;
+		$last_error = '';
+
+		foreach ( $batches as $batch ) {
+			$payload = array_map( static fn( string $email ) => [
+				'emailaddress' => $email,
 				'name'         => $event_name,
 				'payload'      => $event_data,
-			],
-		];
+			], $batch );
 
-		$result = $this->request( 'POST', 'trigger-event', $payload );
+			$result = $this->request( 'POST', 'trigger-event', $payload );
 
-		if ( ! $result['success'] ) {
-			return [
-				'success' => false,
-				'error'   => $result['error'] ?? 'Neznámá chyba SE API.',
-				'code'    => $result['code'] ?? 0,
-			];
+			if ( $result['success'] ) {
+				$ok += count( $batch );
+			} else {
+				$failed    += count( $batch );
+				$last_error = $result['error'] ?? 'Neznámá chyba SE API.';
+			}
 		}
 
-		return [ 'success' => true, 'data' => $result['body'] ?? [] ];
+		if ( $ok === 0 ) {
+			return [ 'success' => false, 'error' => $last_error ];
+		}
+
+		return [ 'success' => true, 'sent' => $ok, 'failed' => $failed ];
+	}
+
+	/**
+	 * Načte emailové adresy kontaktů ze SE seznamu.
+	 */
+	public function get_emails_from_list( int $contact_list_id, int $limit = 500, int $offset = 0 ): array {
+		$result = $this->request( 'GET', 'contacts', [], [
+			'select'         => 'emailaddress',
+			'contactlist_id' => $contact_list_id,
+			'limit'          => $limit,
+			'offset'         => $offset,
+		] );
+
+		if ( ! $result['success'] ) {
+			return [ 'success' => false, 'emails' => [], 'error' => $result['error'] ?? 'Chyba.' ];
+		}
+
+		$data   = $result['body']['data'] ?? [];
+		$emails = array_values( array_filter( array_column( $data, 'emailaddress' ) ) );
+
+		return [ 'success' => true, 'emails' => $emails, 'total' => (int) ( $result['body']['total_count'] ?? count( $emails ) ) ];
 	}
 }

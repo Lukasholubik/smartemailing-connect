@@ -646,18 +646,19 @@ class SMEC_Settings {
 
 	public function get_content_publisher(): array {
 		$defaults = [
-			'enabled'       => 0,
-			'post_types'    => [ 'post' ],
-			'categories'    => [],
-			'event_name'    => 'new_article_published',
-			'trigger_email' => '',
-			'delay_minutes' => 0,
-			'send_title'    => 1,
-			'send_url'      => 1,
-			'send_excerpt'  => 1,
-			'send_thumbnail'=> 1,
-			'send_author'   => 0,
-			'send_category' => 0,
+			'enabled'          => 0,
+			'post_types'       => [ 'post' ],
+			'categories'       => [],
+			'event_name'       => 'new_article_published',
+			'trigger_email'    => '',
+			'contact_list_id'  => 0,
+			'delay_minutes'    => 0,
+			'send_title'       => 1,
+			'send_url'         => 1,
+			'send_excerpt'     => 1,
+			'send_thumbnail'   => 1,
+			'send_author'      => 0,
+			'send_category'    => 0,
 		];
 		$saved = (array) get_option( 'smec_content_publisher', [] );
 		return wp_parse_args( $saved, $defaults );
@@ -668,18 +669,19 @@ class SMEC_Settings {
 		$categories = array_values( array_filter( array_map( 'absint', (array) ( $data['categories'] ?? [] ) ) ) );
 
 		update_option( 'smec_content_publisher', [
-			'enabled'       => ! empty( $data['enabled'] ) ? 1 : 0,
-			'post_types'    => $post_types ?: [ 'post' ],
-			'categories'    => $categories,
-			'event_name'    => sanitize_key( $data['event_name'] ?? 'new_article_published' ),
-			'trigger_email' => sanitize_email( $data['trigger_email'] ?? '' ),
-			'delay_minutes' => max( 0, absint( $data['delay_minutes'] ?? 0 ) ),
-			'send_title'    => ! empty( $data['send_title'] )     ? 1 : 0,
-			'send_url'      => ! empty( $data['send_url'] )       ? 1 : 0,
-			'send_excerpt'  => ! empty( $data['send_excerpt'] )   ? 1 : 0,
-			'send_thumbnail'=> ! empty( $data['send_thumbnail'] ) ? 1 : 0,
-			'send_author'   => ! empty( $data['send_author'] )    ? 1 : 0,
-			'send_category' => ! empty( $data['send_category'] )  ? 1 : 0,
+			'enabled'         => ! empty( $data['enabled'] ) ? 1 : 0,
+			'post_types'      => $post_types ?: [ 'post' ],
+			'categories'      => $categories,
+			'event_name'      => sanitize_key( $data['event_name'] ?? 'new_article_published' ),
+			'trigger_email'   => sanitize_email( $data['trigger_email'] ?? '' ),
+			'contact_list_id' => absint( $data['contact_list_id'] ?? 0 ),
+			'delay_minutes'   => max( 0, absint( $data['delay_minutes'] ?? 0 ) ),
+			'send_title'      => ! empty( $data['send_title'] )     ? 1 : 0,
+			'send_url'        => ! empty( $data['send_url'] )       ? 1 : 0,
+			'send_excerpt'    => ! empty( $data['send_excerpt'] )   ? 1 : 0,
+			'send_thumbnail'  => ! empty( $data['send_thumbnail'] ) ? 1 : 0,
+			'send_author'     => ! empty( $data['send_author'] )    ? 1 : 0,
+			'send_category'   => ! empty( $data['send_category'] )  ? 1 : 0,
 		] );
 	}
 }

@@ -121,9 +121,19 @@ if ( isset( $_GET['smec-saved'] ) ) {
 						<input type="email" name="trigger_email" class="regular-text"
 							value="<?php echo esc_attr( $cfg['trigger_email'] ); ?>"
 							placeholder="tvuj@email.cz">
+						<p class="description">Tvůj email nebo dedikovaný trigger kontakt. Použij pokud chceš event spustit pro <strong>jednoho příjemce</strong> (nebo pokud SE automatizace rozesílá sama všem).</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">Seznam kontaktů (segment)</th>
+					<td>
+						<input type="number" name="contact_list_id" min="0"
+							value="<?php echo esc_attr( $cfg['contact_list_id'] ); ?>"
+							style="width:120px" placeholder="ID seznamu">
 						<p class="description">
-							Email kontaktu v SE který "spustí" event. Stačí jeden (tvůj vlastní nebo dedikovaný trigger kontakt).<br>
-							<strong>SE automatizace sama rozhodne na koho a jak rozešle</strong> – WP jen pošle signál s daty článku.
+							Volitelné. Zadej ID SE seznamu – event se odešle <strong>všem kontaktům v tomto seznamu</strong> (max 500/request, dávkuje se automaticky).<br>
+							Lze kombinovat s Trigger emailem (příjemci se sloučí).
 						</p>
 					</td>
 				</tr>
