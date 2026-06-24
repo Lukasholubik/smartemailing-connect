@@ -3,13 +3,14 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 class SMEC_Admin {
 
-	private SMEC_Settings     $settings;
-	private SMEC_ApiService   $api;
-	private SMEC_FormManager  $form_manager;
-	private SMEC_Queue        $queue;
-	private SMEC_Logger       $logger;
-	private SMEC_Diagnostics  $diagnostics;
-	private SMEC_Notifier     $notifier;
+	private SMEC_Settings          $settings;
+	private SMEC_ApiService        $api;
+	private SMEC_FormManager       $form_manager;
+	private SMEC_Queue             $queue;
+	private SMEC_Logger            $logger;
+	private SMEC_Diagnostics       $diagnostics;
+	private SMEC_Notifier          $notifier;
+	private SMEC_ContentPublisher  $content_publisher;
 
 	private const CAPABILITY   = 'manage_options';
 	private const MENU_SLUG    = 'smartemailing-connect';
@@ -26,22 +27,57 @@ class SMEC_Admin {
 		SMEC_Queue $queue,
 		SMEC_Logger $logger,
 		SMEC_Diagnostics $diagnostics,
-		SMEC_Notifier $notifier
+		SMEC_Notifier $notifier,
+		SMEC_ContentPublisher $content_publisher
 	) {
-		$this->settings     = $settings;
-		$this->api          = $api;
-		$this->form_manager = $form_manager;
-		$this->queue        = $queue;
-		$this->logger       = $logger;
-		$this->diagnostics  = $diagnostics;
-		$this->notifier     = $notifier;
+		$this->settings          = $settings;
+		$this->api               = $api;
+		$this->form_manager      = $form_manager;
+		$this->queue             = $queue;
+		$this->logger            = $logger;
+		$this->diagnostics       = $diagnostics;
+		$this->notifier          = $notifier;
+		$this->content_publisher = $content_publisher;
 	}
 
 	public function register(): void {
 		add_action( 'admin_menu',            [ $this, 'register_menus' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
 		add_action( 'admin_notices',         [ $this, 'render_admin_notices' ] );
+		add_action( 'admin_post_smec_save_content_publisher', [ $this, 'save_content_publisher' ] );
+		add_action( 'wp_ajax_smec_content_publisher_resend',  [ $this, 'ajax_content_publisher_resend' ] );
 		$this->register_ajax_handlers();
+	}
+
+	public function save_content_publisher(): void {
+		if ( ! current_user_can( self::CAPABILITY ) ) wp_die( 'Nedostatečná oprávnění.' );
+		check_admin_referer( 'smec_save_content_publisher', 'smec_nonce' );
+
+		$this->settings->save_content_publisher( $_POST );
+
+		wp_safe_redirect( add_query_arg( 'smec-saved', '1', admin_url( 'admin.php?page=smec-content-publisher' ) ) );
+		exit;
+	}
+
+	public function ajax_content_publisher_resend(): void {
+		check_ajax_referer( 'smec_pub_resend', 'nonce' );
+		if ( ! current_user_can( self::CAPABILITY ) ) {
+			wp_send_json_error( [ 'message' => 'Nedostatečná oprávnění.' ], 403 );
+		}
+
+		$post_id = absint( $_POST['post_id'] ?? 0 );
+		if ( ! $post_id ) {
+			wp_send_json_error( [ 'message' => 'Chybí post_id.' ] );
+			return;
+		}
+
+		$result = $this->content_publisher->resend( $post_id );
+
+		if ( $result['success'] ) {
+			wp_send_json_success( $result );
+		} else {
+			wp_send_json_error( [ 'message' => $result['error'] ?? 'Chyba při odesílání.' ] );
+		}
 	}
 
 	// -------------------------------------------------------------------------
@@ -138,6 +174,7 @@ class SMEC_Admin {
 		if ( ! empty( $modules['gtm'] ) ) {
 			add_submenu_page( self::MENU_SLUG, 'Google Tag Manager', 'GTM',         self::CAPABILITY, 'smec-gtm',          [ $this, 'page_gtm' ] );
 		}
+		add_submenu_page( self::MENU_SLUG, 'Content Publisher', '📢 Content Publisher', self::CAPABILITY, 'smec-content-publisher', [ $this, 'page_content_publisher' ] );
 
 		// Vždy zobrazit
 		add_submenu_page( self::MENU_SLUG, 'Logy',           'Logy',           self::CAPABILITY, 'smec-logs',         [ $this, 'page_logs' ] );
@@ -192,7 +229,8 @@ class SMEC_Admin {
 	public function page_forms():        void { $this->load_template( 'page-forms',         [ 'settings' => $this->settings ] ); }
 	public function page_woocommerce():  void { $this->load_template( 'page-woocommerce',   [ 'settings' => $this->settings ] ); }
 	public function page_reading_time(): void { $this->load_template( 'page-reading-time',  [ 'settings' => $this->settings ] ); }
-	public function page_gtm():          void { $this->load_template( 'page-gtm',           [ 'settings' => $this->settings ] ); }
+	public function page_gtm():               void { $this->load_template( 'page-gtm',              [ 'settings' => $this->settings ] ); }
+	public function page_content_publisher(): void { $this->load_template( 'page-content-publisher', [ 'settings' => $this->settings ] ); }
 	public function page_logs():         void { $this->load_template( 'page-logs',          [ 'logger' => $this->logger, 'queue' => $this->queue ] ); }
 	public function page_notifications(): void { $this->load_template( 'page-notifications',  [ 'settings' => $this->settings, 'notifier' => $this->notifier ] ); }
 	public function page_settings():     void { $this->load_template( 'page-settings',      [ 'settings' => $this->settings ] ); }

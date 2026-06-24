@@ -16,6 +16,7 @@ class SMEC_Plugin {
 	private SMEC_Notifier            $notifier;
 	private SMEC_Admin               $admin;
 	private SMEC_HealthCheck         $health_check;
+	private SMEC_ContentPublisher    $content_publisher;
 
 	public function run(): void {
 		$this->settings     = new SMEC_Settings();
@@ -29,8 +30,9 @@ class SMEC_Plugin {
 		$this->gtm          = new SMEC_GTM( $this->settings );
 		$this->diagnostics  = new SMEC_Diagnostics( $this->settings, $this->logger, $this->queue );
 		$this->notifier     = new SMEC_Notifier( $this->settings, $this->logger, $this->queue );
-		$this->health_check = new SMEC_HealthCheck( $this->settings, $this->logger, $this->diagnostics, $this->api, $this->notifier );
-		$this->admin        = new SMEC_Admin( $this->settings, $this->api, $this->form_manager, $this->queue, $this->logger, $this->diagnostics, $this->notifier );
+		$this->health_check       = new SMEC_HealthCheck( $this->settings, $this->logger, $this->diagnostics, $this->api, $this->notifier );
+		$this->content_publisher  = new SMEC_ContentPublisher( $this->settings, $this->api, $this->logger );
+		$this->admin              = new SMEC_Admin( $this->settings, $this->api, $this->form_manager, $this->queue, $this->logger, $this->diagnostics, $this->notifier, $this->content_publisher );
 
 		$modules = $this->settings->get_general()['modules'] ?? [];
 
@@ -63,6 +65,9 @@ class SMEC_Plugin {
 		if ( ! empty( $modules['gtm'] ) ) {
 			$this->gtm->register();
 		}
+
+		// Module: Content Publisher (vždy registrovat cron hook, zapnutí řídí settings)
+		$this->content_publisher->register();
 
 		// Cron: queue processing
 		$this->queue->register_cron();

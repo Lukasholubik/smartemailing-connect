@@ -194,4 +194,40 @@ class SMEC_ApiService {
 			'retryable' => $retryable,
 		];
 	}
+
+	// ── Content Publisher – automation event trigger ──────────────────────────
+
+	/**
+	 * Vyvolá custom automation event pro kontakty v daném seznamu.
+	 * SE automatizace musí mít nakonfigurovaný trigger „Custom event" se shodným event_name.
+	 *
+	 * Endpoint: POST /api/v3/contacts/bulk-automation-event-trigger
+	 *
+	 * @param  string  $event_name      Název custom eventu (shodný s nastavením v SE)
+	 * @param  array   $event_data      Datový payload – proměnné dostupné v SE šabloně
+	 * @param  int     $contact_list_id ID kontaktního seznamu v SE
+	 */
+	public function trigger_automation_event( string $event_name, array $event_data, int $contact_list_id ): array {
+		if ( empty( $event_name ) || $contact_list_id <= 0 ) {
+			return [ 'success' => false, 'error' => 'Chybí event_name nebo contact_list_id.' ];
+		}
+
+		$payload = [
+			'event_name'       => $event_name,
+			'contact_list_id'  => $contact_list_id,
+			'data'             => $event_data,
+		];
+
+		$result = $this->request( 'POST', 'contacts/bulk-automation-event-trigger', $payload );
+
+		if ( ! $result['success'] ) {
+			return [
+				'success' => false,
+				'error'   => $result['error'] ?? 'Neznámá chyba SE API.',
+				'code'    => $result['code'] ?? 0,
+			];
+		}
+
+		return [ 'success' => true, 'data' => $result['body'] ?? [] ];
+	}
 }
