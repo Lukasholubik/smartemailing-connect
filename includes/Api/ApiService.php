@@ -198,8 +198,33 @@ class SMEC_ApiService {
 	// ── Content Publisher – automation event trigger ──────────────────────────
 
 	/**
+	 * Načte emailové adresy kontaktů ze SE seznamu (se stránkováním).
+	 *
+	 * @return array{success: bool, emails: string[], error?: string}
+	 */
+	public function get_emails_from_list( int $contact_list_id, int $limit = 500, int $offset = 0 ): array {
+		$result = $this->request(
+			'GET',
+			"contactlists/{$contact_list_id}/contacts",
+			[],
+			[ 'limit' => $limit, 'offset' => $offset, 'select' => 'emailaddress' ]
+		);
+
+		if ( ! $result['success'] ) {
+			return [ 'success' => false, 'emails' => [], 'error' => $result['error'] ?? 'Chyba načítání kontaktů.' ];
+		}
+
+		$data   = $result['body']['data'] ?? [];
+		$emails = array_values( array_filter( array_column( $data, 'emailaddress' ) ) );
+
+		return [ 'success' => true, 'emails' => $emails, 'total' => $result['body']['total_count'] ?? count( $emails ) ];
+	}
+
+	/**
 	 * Vyvolá custom automation event pro kontakty v daném seznamu.
-	 * SE automatizace musí mít nakonfigurovaný trigger „Custom event" se shodným event_name.
+	 *
+	 * SE endpoint bulk-automation-event-trigger vyžaduje seznam emailaddress (ne list ID).
+	 * Proto se nejdřív načtou kontakty ze seznamu a pak se odešle bulk trigger.
 	 *
 	 * Endpoint: POST /api/v3/contacts/bulk-automation-event-trigger
 	 *
@@ -212,10 +237,32 @@ class SMEC_ApiService {
 			return [ 'success' => false, 'error' => 'Chybí event_name nebo contact_list_id.' ];
 		}
 
+		// Načti kontakty ze seznamu (max 500 na dávku, opakovat pokud jich je více)
+		$all_emails  = [];
+		$offset      = 0;
+		$batch_limit = 500;
+
+		do {
+			$list_result = $this->get_emails_from_list( $contact_list_id, $batch_limit, $offset );
+			if ( ! $list_result['success'] ) {
+				return [ 'success' => false, 'error' => 'Nepodařilo se načíst kontakty ze seznamu: ' . ( $list_result['error'] ?? '' ) ];
+			}
+			$all_emails = array_merge( $all_emails, $list_result['emails'] );
+			$offset    += $batch_limit;
+			$has_more   = count( $list_result['emails'] ) === $batch_limit;
+		} while ( $has_more && count( $all_emails ) < 5000 );
+
+		if ( empty( $all_emails ) ) {
+			return [ 'success' => false, 'error' => 'Seznam kontaktů (ID ' . $contact_list_id . ') je prázdný.' ];
+		}
+
+		// Odeslat bulk automation event trigger s emailovými adresami
+		$contacts = array_map( static fn( string $email ) => [ 'emailaddress' => $email ], $all_emails );
+
 		$payload = [
-			'event_name'       => $event_name,
-			'contact_list_id'  => $contact_list_id,
-			'data'             => $event_data,
+			'event_name' => $event_name,
+			'contacts'   => $contacts,
+			'data'       => $event_data,
 		];
 
 		$result = $this->request( 'POST', 'contacts/bulk-automation-event-trigger', $payload );
@@ -228,6 +275,10 @@ class SMEC_ApiService {
 			];
 		}
 
-		return [ 'success' => true, 'data' => $result['body'] ?? [] ];
+		return [
+			'success'         => true,
+			'contacts_count'  => count( $all_emails ),
+			'data'            => $result['body'] ?? [],
+		];
 	}
 }
